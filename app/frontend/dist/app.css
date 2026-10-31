@@ -26,14 +26,14 @@ body {
 }
 .brand { display: flex; align-items: center; gap: 10px; }
 .logo { font-size: 40px; line-height: 1; }
-/* 小猫头尺寸按量像素定：黄帽上沿要与「工头派工台」文字上沿持平或略高，
+/* 小猫头尺寸按量像素定：黄帽上沿要与「工头派工台」文字上沿持平或略高
    下沿不往下动 → 用 vertical-align:top 让图往上长，而不是上下各长一半。 */
 .logo img { vertical-align: top; image-rendering: auto; display: block; }
 .brand-name { font-size: 18px; font-weight: 700; }
 /* 小工厂（带烟囱）跟在大字后面、同一排，小字在它下面。 */
 .brand-factory { font-size: 22px; margin-left: 10px; vertical-align: -2px; }
 .brand-sub { font-size: 11px; color: var(--dim); }
-/* 徽章自己占一整行（flex:1 1 100%）：之前与品牌、标签页挤在同一行，
+/* 徽章自己占一整行（flex:1 1 100%）：之前与品牌、标签页挤在同一行
    窗口不够宽时最右边的徽章被裁掉、标签页还会整个没了（实测踩过，用户 2026-10-25）。
    min-width:0 保留：不给的话这一栏最小宽度等于所有徽章之和，挤不下也不换行。
    靠右排列（用户 2026-10-25：全挤在左边、右边空着不美观）。 */
@@ -92,7 +92,7 @@ button.danger:hover { border-color: var(--bad); color: var(--bad); }
 
 /* 任务卡 */
 .list { display: flex; flex-direction: column; gap: 8px; }
-/* 任务卡片：抬头行 / 内容 / 底部按钮行，单列流式排（不用右侧绝对列，
+/* 任务卡片：抬头行 / 内容 / 底部按钮行，单列流式排（不用右侧绝对列
    免得长内容把按钮顶出卡片，也方便截图自查）。 */
 .task {
   display: flex; flex-direction: column; gap: 6px;
@@ -128,7 +128,7 @@ button.danger:hover { border-color: var(--bad); color: var(--bad); }
 .tag.bad { color: var(--bad); }
 .empty { color: var(--dim); font-size: 13px; padding: 8px 2px; }
 
-/* 窗口行：三列（勾选 / 信息 / 状态）。模型与时间放进第二行的副信息，
+/* 窗口行：三列（勾选 / 信息 / 状态）。模型与时间放进第二行的副信息
    不再各占一列 —— 列太多会把长内容顶出窗口（实测踩过两次）。 */
 .win {
   display: grid; grid-template-columns: 20px minmax(0, 1fr) 76px; gap: 12px; align-items: center;
@@ -244,7 +244,7 @@ button.danger:hover { border-color: var(--bad); color: var(--bad); }
 .shot-size.active { border-color: var(--accent); color: #fff; }
 .shot-color { width: 20px; height: 20px; border-radius: 50%; display: inline-block; border: 2px solid transparent; cursor: pointer; }
 .shot-color.hidden { display: none; }
-/* 选中环要深浅双环：原来只一圈白环，在白块和近白色块上根本看不见 → 老板看不出选的哪个色，「看着都是白」 */
+/* 选中环要深浅双环：原来只一圈白环，在白块和近白色块上根本看不见 → 用户看不出选的哪个色，「看着都是白」 */
 .shot-color.active { border-color: #1b1f27; box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(0,0,0,.5); }
 /* 打字框：z-index 必顶高于画布与工具栏，否则会被截图层抢焦点（写不上字的真因） */
 .shot-text { position: fixed; z-index: 78; min-width: 180px; background: rgba(0,0,0,.55); border: 1px solid var(--accent); border-radius: 6px; padding: 4px 6px; font-size: 18px; font-family: inherit; color: #fff; outline: none; resize: both; caret-color: #fff; cursor: text; }

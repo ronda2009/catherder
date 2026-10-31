@@ -229,7 +229,7 @@ func TestTickShutdownArmsAndDisarms(t *testing.T) {
 	if s := e.ShutdownState(); s == "" {
 		t.Error("界面该看得到「准备关机」")
 	}
-	// 窗口又忙了 → 自动撤销（定稿 §10：期间有新活动自动撤销）
+	// 窗口又忙了 → 自动撤销
 	busy := map[string]openclaw.Window{"w-a": win("w-a", "A", "strata", false)}
 	e.tickShutdown(inc, busy, false)
 	if e.armedAt() != 0 {

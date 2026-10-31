@@ -38,7 +38,7 @@ const (
 
 // pdhFmtCounterValueItem 对应 PDH_FMT_COUNTERVALUE_ITEM_W（64 位）
 // 名字指针(8) + CStatus(4) + 对齐补空(4) + double 值(8) = **24 字节**。
-// 步长本机实测过（拿 24/40/48/56/64/128 逐个试，只有 24 能让 672 个实例名全部合法）。
+// 步长本机（拿 24/40/48/56/64/128 逐个试，只有 24 能让 672 个实例名全部合法）。
 // 注意 bufSize/itemCount ≈151 不是步长 —— 实例名另存在缓冲区后半段。
 type pdhFmtCounterValueItem struct {
 	Name    *uint16

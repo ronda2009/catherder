@@ -1,4 +1,4 @@
-// 自动关机（定稿 §10）：纳入派工的窗口全空闲 + 队列空 + 服务空闲 + 复核通过
+// 自动关机：纳入派工的窗口全空闲 + 队列空 + 服务空闲 + 复核通过
 // → 先发通知 → 60 秒缓冲关机；期间有新活动自动撤销。
 // 非 Windows 由入口程序决定不启用（autostart_other.go 同理，这里只写 Windows 分支）。
 package engine
@@ -119,7 +119,7 @@ func (e *Engine) disarm(reason string) {
 	exec.Command("shutdown", "/a").Run()
 }
 
-// shutdownReady 判关机条件（定稿 §10）。返回不满足的原因给日志看。
+// shutdownReady 判关机条件。返回不满足的原因给日志看。
 func (e *Engine) shutdownReady(included map[string]bool, wins map[string]openclaw.Window) (bool, string) {
 	c, err := e.st.Counts()
 	if err != nil {

@@ -27,7 +27,7 @@ type Window struct {
 	Pending   int // 还堆着没处理的输入条数
 }
 
-// Idle 判「窗口这一侧已完成」：状态已结束。是否再等延时复核由引擎决定（定稿 §4）。
+// Idle 判「窗口这一侧已完成」：状态已结束。是否再等延时复核由引擎决定。
 func (w *Window) Idle() bool {
 	return w.Status == "done" || w.Status == "failed" || w.Status == "killed"
 }

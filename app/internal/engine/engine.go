@@ -20,7 +20,7 @@ import (
 
 const (
 	maxReplyChars = 1200 // 与现有飞书转发脚本一致：超长截断并注明全文在窗口
-	freshInputMs  = 5000 // 定稿 §11：目标窗口 5 秒内刚有新输入 → 本次顺延
+	freshInputMs  = 5000 // 目标窗口 5 秒内刚有新输入 → 本次顺延
 	notifyTries   = 3
 )
 
@@ -349,7 +349,7 @@ func (e *Engine) finishOne(db *openclaw.DB, t store.Task, w openclaw.Window, dry
 func (e *Engine) hasAck(db *openclaw.DB, sessionID string, t store.Task) bool {
 	for _, needle := range []string{
 		fmt.Sprintf("✅T-%03d", t.ID),
-		fmt.Sprintf("DONE T-%03d", t.ID), // 英文界面下的回执（定稿 §8）
+		fmt.Sprintf("DONE T-%03d", t.ID), // 英文界面下的回执
 	} {
 		if ok, err := db.ContainsSince(sessionID, t.DispatchedAt, needle); err == nil && ok {
 			return true
@@ -513,7 +513,7 @@ func (e *Engine) dispatch(wins map[string]openclaw.Window, included map[string]b
 func (e *Engine) confirmFor(t store.Task, w openclaw.Window, ds []store.Task, wins map[string]openclaw.Window) confirmResult {
 	req := e.sameModelConflict(t, w, ds, wins)
 	if req == nil {
-		return confirmPass // 不同模型或云端探不到 → 不弹（定稿 §6）
+		return confirmPass // 不同模型或云端探不到 → 不弹
 	}
 	if e.confirmMuted() {
 		return confirmPass // 勾过不再提醒

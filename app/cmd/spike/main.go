@@ -1,6 +1,6 @@
 // spike: M1a 尖测 —— Go 能否只读打开 OpenClaw 会话库（WAL 模式）并读到
 // 调度需要的三样东西：窗口状态、待处理输入、最后一条回复正文。
-// 这一步过了，整个软件才敢全押 Go；不过就走 Tauri / Node 后备。见设计定稿 §1。
+// 这一步过了，整个软件才敢全押 Go；不过就走 Tauri / Node 后备。
 package main
 
 import (
@@ -16,7 +16,7 @@ import (
 type sessionRow struct {
 	Key     string  `json:"key"`
 	Label   *string `json:"label"`
-	Status  *string `json:"status"` // NULL = 正在跑（实测结论，见定稿 §4）
+	Status  *string `json:"status"` // NULL = 正在跑（实测结论，）
 	Model   *string `json:"model"`
 	Updated int64   `json:"updated_at"`
 }
