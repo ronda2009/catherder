@@ -1,4 +1,4 @@
-# 构建产物与开发期临时输出
+# 构建产物
 app/bin/
 *.syso
 *.exe
@@ -7,17 +7,15 @@ app/bin/
 *.err
 *.out
 
-# 本机数据与开发期截图（内部记录，不进发布包）
+# 本机数据与开发记录（不进发布包、不公开）
 tmp/
-media/*
-!media/screenshots/
 台账.csv
 台账备份/
-/验收-*.png
-/shot-*.png
-/tray*.png
-/tb_*.png
-/taskbar_*.png
+tools/
+app/cmd/spike*/
+app/cmd/spike/
+/preview.ico
+/pv*.bmp
 /preview*.png
 /pv_*.png
 /pv*.png
@@ -25,11 +23,30 @@ media/*
 /cat*.bmp
 /ico_*.png
 /lnk_*.png
+/验收-*.png
+/shot-*.png
+/tray*.png
+/tb_*.png
+/taskbar_*.png
+/gui-*.png
+/tmp-brand.png
 /logo_zoom.png
 /exeicon.png
 /exe-icon-32.png
-/gui-*.png
-/tmp-brand.png
+/设计定稿.md
+/代码索引.md
+/可行性探讨.md
+/接口实测记录.md
+/用词对照表.md
+/界面验收记录.md
+/M3验收记录.md
+/M4验收记录.md
+/发布操作单.md
+
+# 发布素材（收款码单独提交）
+media/*
+!media/screenshots/
+!media/alipay-qr.jpg
 
 # 编辑器与系统
 .vscode/

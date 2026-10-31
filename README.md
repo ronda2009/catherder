@@ -63,8 +63,8 @@ Local model time stays fully used, and nobody has to sit at the machine: dispatc
 
 **Screenshots and files**
 
-- Built-in capture: drag a region, then pen / rectangle / ellipse / arrow / text / mosaic / colour picker, three stroke widths, undo, redo, save as.
-- Captures and files land in a pending area first, so a note can be added before queuing; attachments travel to the target window with the task.
+- OpenClaw's web chat accepts files and images but cannot take a screenshot. Foreman includes its own capture tool: drag to select a region, then pen / rectangle / ellipse / arrow / text / mosaic / colour picker, three stroke widths, undo, redo, save as.
+- Captures and files land in a pending area first, so a note can be added before queuing; attachments travel to the target window with the task, so the model reads the image directly. Dispatching a visual task needs no copy-paste between programs.
 
 **Automatic shutdown**
 
@@ -82,7 +82,7 @@ Local model time stays fully used, and nobody has to sit at the machine: dispatc
 ## 3. Requirements
 
 - OpenClaw gateway running on the same machine (port 18789 by default; read from `~/.openclaw/openclaw.json`).
-- Model service status is optional: Foreman can read a service status endpoint (for example Strata's `/status`); if it cannot, it falls back to window state only.
+- Model service status is optional: Foreman can read a service status endpoint (for example Strata's `/status`); the address is a setting (default `http://127.0.0.1:8080`), so any local service layout works. If it cannot be reached, Foreman falls back to window state only.
 - A chat channel is optional.
 - Automatic shutdown uses the Windows command (`shutdown /s /t 0 /f`); other systems are not adapted, leave it off there.
 
@@ -91,6 +91,8 @@ Local model time stays fully used, and nobody has to sit at the machine: dispatc
 1. Download `catherder-gui.exe` from Releases (portable single file, about 16 MB).
 2. Run it. Session database path and gateway port are located automatically; fill them in Settings if they are not found.
 3. Data defaults to `catherder\catherder.sqlite` under the user config directory (on Windows `%APPDATA%\catherder\catherder.sqlite`). Use `-data <path>` for a separate database and `-id <name>` for a separate single-instance lock, so two copies can run side by side.
+
+Nothing is fixed to one machine: the OpenClaw config path is derived from the user home, the session database path and gateway port are located at runtime, chat channels are read from that config, and the model service address is a setting. A new machine needs no edits, only Settings if auto-detection misses.
 
 The command line build shares the same logic as the GUI:
 
@@ -123,9 +125,11 @@ app/            Go source and front-end assets
   main.go       single entry point: subcommands run the CLI, otherwise the GUI starts
   internal/     engine / openclaw (read + dispatch) / store / app (GUI bridge) / screen / cli
   frontend/dist interface (app.js / shot.js / i18n.js / index.html / app.css)
-tools/          development scripts: build, GUI self-check, translation checks, ledger, release packaging
-root .md files  design, interface measurements, milestone acceptance, term list, release runbook (development records, not user docs)
+  assets/       taskbar icon
+media/screenshots  the three images above
 ```
+
+Development scripts, design notes and acceptance records live outside the published tree; the build commands above are all a contributor needs.
 
 ## 7. Known limits
 
@@ -137,4 +141,8 @@ root .md files  design, interface measurements, milestone acceptance, term list,
 
 ## 8. License
 
-MIT. See LICENSE.
+MIT. See LICENSE. Attribution is required: keep the copyright notice and licence text in copies, and credit the project name and repository link when quoting or describing it.
+
+## 9. Support
+
+Donations are accepted through Alipay; the QR image is in the repository (media/alipay-qr.jpg) and the link is in .github/FUNDING.yml, which renders as the "Sponsor" button on the repository page. GitHub Sponsors does not take payments from mainland China accounts, so Alipay is used instead. Donations are voluntary and carry no service obligation.

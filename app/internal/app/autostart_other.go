@@ -2,7 +2,7 @@
 
 package app
 
-// 非 Windows 平台暂不做开机自启（本机是 Windows，发布目标也是 Windows）。
+// 非 Windows 平台未适配开机自启（发布目标为 Windows）。
 
 type AutoStartInfo struct {
 	Enabled bool   `json:"enabled"`

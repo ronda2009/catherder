@@ -56,7 +56,7 @@ function serviceShort(s) {
 }
 
 /* 顶栏「距下次检查」：引擎是每隔 N 秒跑一轮（不是每条任务各自倒计时）
-   所以这里显示的是全局节拍；本地每秒走一秒，不用每次都问后端（用户 2026-10-24 提）。 */
+   所以这里显示的是全局节拍；本地每秒走一秒，不用每次都问后端。 */
 let nextTickSec = -1;
 function renderNextChip(running, sec, interval) {
   const el = $('chip-next');

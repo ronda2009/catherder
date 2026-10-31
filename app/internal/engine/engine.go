@@ -717,7 +717,7 @@ func (e *Engine) NotifyNow(text string) error {
 	return ws2.SendToConversation("main", ref2, text)
 }
 
-// serviceBusy 读模型服务的忙闲（本机 Strata 形状， 的可选适配器）。
+// serviceBusy 读模型服务的忙闲（按状态地址探，属可选适配器）。
 // 探不到就返回 known=false，调用方降级为只看窗口状态。
 func (e *Engine) serviceBusy() (busy bool, known bool) {
 	base, _ := e.st.GetSetting("service_status_url")
@@ -733,7 +733,7 @@ func (e *Engine) serviceBusy() (busy bool, known bool) {
 }
 
 // providerBusy 查「某个窗口用的那个服务商」忙不忙。云端/探不到 → known=false，调用方不拦。
-// 档位切换器（本机 8080）自己不干推理，先问它当前档在哪个端口，再查那个端口。
+// 档位切换器（状态地址默认端口）自己不干推理，先问它当前档在哪个端口，再查那个端口。
 func (e *Engine) providerBusy(provider string) (busy bool, known bool) {
 	if provider == "" {
 		return false, false
