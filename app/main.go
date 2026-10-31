@@ -49,7 +49,7 @@ func init() {
 	kernel32.NewProc("SetConsoleOutputCP").Call(65001)
 }
 
-// looksLikeSubcommand 判断第一个参数像不像「想跑子命令」：纯字母数字连字号、不是开关、
+// looksLikeSubcommand 判断第一个参数像不像「想跑子命令」：纯字母数字连字号、不是开关
 // 不是路径、不是文件名。只有这种才拦下来报「没这个子命令」，否则当普通参数走界面。
 func looksLikeSubcommand(word string) bool {
 	if word == "" || strings.HasPrefix(word, "-") {
@@ -73,7 +73,7 @@ func main() {
 		return
 	}
 	// 参数不是已知子命令也不是开关（打错了、或新加命令忘了进白名单）：给一句人话用法。
-	// 不拦的话会掉进界面模式：命令行版没带 production 标记时 wails.Run 直接崩，
+	// 不拦的话会掉进界面模式：命令行版没带 production 标记时 wails.Run 直接崩
 	// 甩一堆 Go 栈给用户看。
 	if len(argv) > 0 && looksLikeSubcommand(argv[0]) {
 		fmt.Printf("没这个子命令：%s\n\n", argv[0])
@@ -88,7 +88,7 @@ func main() {
 	dataPath := fsFlags.String("data", store.DefaultPath(), "派工台自己的库")
 	startTab := fsFlags.String("tab", "", "启动时先打开哪个页：dispatch/windows/log/settings（调试用）")
 	height := fsFlags.Int("height", 780, "窗口高度（调试用）")
-	// 同时跑两份（老板挂后台用 + 我开着测试）：单实例锁原来写死一个号，
+	// 同时跑两份（用户挂后台用 + 我开着测试）：单实例锁原先写死一个号
 	// 第二份会被当成「重复双击」并进第一个。--id 给每份自己的锁号，--data 给每份自己的库。
 	instID := fsFlags.String("id", "catherder-paigongtai", "单实例锁号：两份要同时跑就给不同的号")
 	label := fsFlags.String("label", "工头派工台 CatHerder", "窗口标题与右下角图标悬停显示的名字（两份并存时用来区分）")
@@ -140,8 +140,8 @@ func main() {
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		// 窗口底色定黑：全屏/退全屏那一瞬 WebView 重绘时露出的是底色，
-		// 不定的话默认是白 → 老板看到的「闪一下」。
+		// 窗口底色定黑：全屏/退全屏那一瞬 WebView 重绘时露出的是底色
+		// 不定的话默认是白 → 用户看到的「闪一下」。
 		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 1},
 		// 文件能直接拖进窗口（拖到输入区那块）：和网页端一样方便。
 		DragAndDrop: &options.DragAndDrop{

@@ -114,7 +114,7 @@ const DICT = {
   '排队第 ': 'Queued #',
   '共 ': 'Total ',
   ' 条，按顺序执行': ' item(s), run in order',
-  /* 各区改成新的在上（老板 2026-10-27）*/
+  /* 各区改成新的在上 */
   ' 条 · 新的在上 · 最下面那条先派': ' item(s) · newest on top · the bottom one dispatches first',
   '队列为空': 'Queue is empty',
   '队列为空。在上方填写任务内容，按 Ctrl+Enter 加入队列。':
@@ -234,7 +234,7 @@ const DICT = {
   '已加入队列 ': 'Queued ',
   '，目标窗口空闲时会自动派发。': '; it dispatches when the target window is idle.',
   '已取回输入框，修改后请重新加入队列。': 'Back in the editor — edit it and queue it again.',
-  /* 队列里就地编辑（老板 2026-10-27）*/
+  /* 队列里就地编辑 */
   '已转入就地编辑，这条先不派发；改完按「改好了」重新排队。': 'opened for in-place editing — this one is held back; press "Done editing, re-queue" to put it back in line.',
   '改完前这条不会被派发，后面的任务照常走': 'Held until you confirm — the tasks behind it keep going',
   '存好并回到排队，按 Ctrl+Enter 也一样': 'Save it and put it back in line (Ctrl+Enter does the same)',
@@ -426,7 +426,7 @@ const DICT = {
   '队列清空且全空闲，执行关机': 'Queue empty and all windows idle — running the shutdown',
   '这台机器没探测到聊天通道，用户选了「不用通知，只用界面」': 'No chat channel detected on this machine; the user chose "no notifications, interface only"',
   '重新排队': 'Requeued',
-  /* 托盘那几条走 feed，同样登记整句（不登记会被短词条「图」换成 img、「中」换成 Medium）*/
+  /* 托盘那几条走 feed，同样登记整句（不登记会被短词条「图」换成 img、「中」换成 Medium） */
   '已在任务栏图标区常驻：左键叫回主界面，右键出菜单': 'Living in the tray now: left-click brings the window back, right-click opens the menu',
   '托盘图标读不出来（窗口与功能照常，只是任务栏里没图标）': 'Tray icon could not be loaded (windows and features work fine, there is just no tray icon)',
   '托盘起不来：建消息窗失败（点右上角叉会直接退出，不会藏窗口）': 'Tray unavailable: could not create the message window (closing the window quits instead of hiding it)',
@@ -449,9 +449,9 @@ function keep(x) {
   stash.push([x, false]);
   return '\u0001' + (stash.length - 1) + '\u0001';
 }
-// keepText：括号里的原因（「N 条任务均为异常」「gateway: 报错原文」）要翻，但不能被短词条切碎，
-// 所以先藏起来；放回时**只走整句规则**（不走片段词典）——这样「3 条任务均为异常」能整句换英文，
-// 而任意中文（比如老板自己写的暂停原因）不会被「中」→Medium 这种短词条换坏。
+// keepText：括号里的原因（「N 条任务均为异常」「gateway: 报错原文」）要翻，但不能被短词条切碎
+// 所以先藏起来；放回时**只走整句规则**（不走片段词典）——这样「3 条任务均为异常」能整句换英文
+// 而任意中文不会被「中」→Medium 这种短词条换坏。
 function keepText(x) {
   stash.push([x, true]);
   return '\u0001' + (stash.length - 1) + '\u0001';
@@ -533,7 +533,7 @@ function walkDom(node) {
     return;
   }
   if (node.nodeType !== 1) return;
-  if (node.hasAttribute && node.hasAttribute('data-no-i18n')) return;   // 语言下拉自己：不许被翻译（不然「中文」会被换成 Medium）
+  if (node.hasAttribute && node.hasAttribute('data-no-i18n')) return; // 语言下拉自己：不许被翻译（不然「中文」会被换成 Medium）
   for (const a of ATTRS) {
     const v = node.getAttribute(a);
     if (!v) continue;
@@ -555,7 +555,7 @@ function applyDom() {
   if (t) t.textContent = uiLang === 'en' ? 'Foreman CatHerder' : t.getAttribute('data-zh-text') || '工头派工台 CatHerder';
   if (t) t.setAttribute('data-zh-text', '工头派工台 CatHerder');
   document.documentElement.lang = uiLang === 'en' ? 'en' : 'zh-CN';
-  // 英文界面下挂一条固定提示：任务正文/窗口名/日志/通道名来自 OpenClaw，不翻（老板要求）。
+  // 英文界面下挂一条固定提示：任务正文/窗口名/日志/通道名来自 OpenClaw，不翻。
   const ln = document.getElementById('lang-note');
   if (ln) ln.classList.toggle('hidden', uiLang !== 'en');
 }
@@ -590,7 +590,7 @@ function trLog(line) {
   const m = String(line).match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[([^\]]*)\] #(\d+) ?([\s\S]*)$/);
   if (!m) return tr(line);
   const [, at, kind, tid, body] = m;
-  if (body.indexOf('[前端]') === 0) return line;   // 界面自检那类调试行：内部文字，原样不翻
+  if (body.indexOf('[前端]') === 0) return line; // 界面自检那类调试行：内部文字，原样不翻
   stash = [];
   let b = body;
   for (const [re, fn] of LOG_RULES.concat(RULES)) {

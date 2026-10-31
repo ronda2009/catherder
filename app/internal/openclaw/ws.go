@@ -2,9 +2,9 @@
 // （sessions_send 在默认硬拒绝表，message 回 404），而 WS 这条路全通（cmd/spike2~5）。
 // 握手三要点：
 //
-//	client.id 必须是 "gateway-client"、mode 必须是 "backend"（别的值直接被枚举拒绝）；
-//	环回 + 共享 token 可不带设备签名；
-//	不报 scopes 只有隐式读权限 —— sessions.send 要 operator.write，conversations.send 要 operator.admin。
+// client.id 必须是 "gateway-client"、mode 必须是 "backend"（别的值直接被枚举拒绝）；
+// 环回 + 共享 token 可不带设备签名；
+// 不报 scopes 只有隐式读权限 —— sessions.send 要 operator.write，conversations.send 要 operator.admin。
 package openclaw
 
 import (

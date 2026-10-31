@@ -121,7 +121,7 @@ func GrabScreenPNG() ([]byte, int, int, error) {
 	}
 
 	var out bytes.Buffer
-	// 默认压缩级别最费时间（本机 3840x2160 实测 0.89s，点一下截图要等一秒）。
+	// 默认压缩级别最费时间。
 	// 底图只是拿来当背景画，不存盘，压不压小无所谓 → 用最快档。
 	enc := png.Encoder{CompressionLevel: png.BestSpeed}
 	if err := enc.Encode(&out, img); err != nil {

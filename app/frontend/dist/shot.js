@@ -1,31 +1,31 @@
 /* 截图 + 标注。
  *
  * 流程：点「截图」→ Go 抓整屏并把自己全屏 → 这一帧铺满屏幕（等于把屏幕冻住）
- *      → 拖鼠标框选 → 画笔/方框/画圈/箭头/文字 → 「完成」把选区+标注合成一张图
- *      → 存盘 → 作为带图任务加入队列 → 派发时文字和图一起发给目标窗口。
+ * → 拖鼠标框选 → 画笔/方框/画圈/箭头/文字 → 「完成」把选区+标注合成一张图
+ * → 存盘 → 作为带图任务加入队列 → 派发时文字和图一起发给目标窗口。
  *
  * 坐标规矩（搞错就会糊或错位）：
- *   抓回来的图是物理像素（本机 3840x2160）；界面里一切按 CSS 像素算（本机 2560x1440）。
- *   scale = 图宽 / 视口宽（本机 1.5）。画的时候用 CSS 像素，出图时按 scale 放大回物理像素，
- *   所以标注不会糊。
+ * 抓回来的图是物理像素（本机 3840x2160）；界面里一切按 CSS 像素算（本机 2560x1440）。
+ * scale = 图宽 / 视口宽（本机 1.5）。画的时候用 CSS 像素，出图时按 scale 放大回物理像素
+ * 所以标注不会糊。
  */
 (function () {
   const $ = (id) => document.getElementById(id);
 
-  let img = null;          // 整屏那一帧
-  let scale = 1;           // CSS 像素 → 图片物理像素
-  let sel = null;          // 选区 {x,y,w,h}，CSS 像素、相对视口
-  let marks = [];          // 标注（CSS 像素、相对视口）
-  let redo = [];           // 被撤销掉的标注，用于「重做」
+  let img = null; // 整屏那一帧
+  let scale = 1; // CSS 像素 → 图片物理像素
+  let sel = null; // 选区 {x,y,w,h}，CSS 像素、相对视口
+  let marks = []; // 标注（CSS 像素、相对视口）
+  let redo = []; // 被撤销掉的标注，用于「重做」
   let tool = 'pen';
   let color = '#ff3b30';
-  let size = 4;            // 线宽（细/中/粗）
+  let size = 4; // 线宽（细/中/粗）
   let drawing = false;
-  let cur = null;          // 正在拖的那一笔
-  let textEl = null;       // 文字输入框（落点挂在 textEl.at 上）
-  let pickEl = null;       // 取色器的小卡片
-  let picked = '';         // 取色器刚取到的色值（Ctrl+C 复制用）
-  let mosaicImg = null;    // 整屏马赛克版，涂抹时按笔迹裁开填
+  let cur = null; // 正在拖的那一笔
+  let textEl = null; // 文字输入框（落点挂在 textEl.at 上）
+  let pickEl = null; // 取色器的小卡片
+  let picked = ''; // 取色器刚取到的色值（Ctrl+C 复制用）
+  let mosaicImg = null; // 整屏马赛克版，涂抹时按笔迹裁开填
   let busy = false;
 
   const canvas = () => $('shot-canvas');
@@ -33,7 +33,7 @@
 
   // 放大镜：直接画在主画布上（少一个元素、少一套定位，就不会出不来）
   const LOUPE_W = 220, LOUPE_H = 168, LOUPE_BAR = 44, LOUPE_CELL = 6;
-  let loupeAt = null;      // 放大镜要跟的鼠标点（CSS 像素）；null = 不显
+  let loupeAt = null; // 放大镜要跟的鼠标点（CSS 像素）；null = 不显
   let loupeInfo = { shown: false, x: 0, y: 0, hex: '' };
 
   /* ---------- 开关 ---------- */
@@ -42,7 +42,7 @@
     if (busy) return;
     busy = true;
     try {
-      const s = await api().CaptureScreen();   // 只抓屏，还不全屏
+      const s = await api().CaptureScreen(); // 只抓屏，还不全屏
       // 黑底先盖住界面再全屏：撑大、标签页重排全在黑底背后。
       sel = null; marks = []; redo = []; mosaicImg = null;
       $('shot').classList.remove('hidden');
@@ -51,7 +51,7 @@
         fitCanvas();
         setStage('sel');
         redraw();
-        await api().EnterShot();   // 全屏后窗口 resize 会自己再 fitCanvas
+        await api().EnterShot(); // 全屏后窗口 resize 会自己再 fitCanvas
       };
       img.onerror = () => {
         busy = false;
@@ -73,11 +73,11 @@
     dropText();
     dropPick();
     picked = '';
-    // 工具也要复位成花圈：上轮就是漏了这个，老板取色后按 Esc 取消、再截图出不来框。
+    // 工具也要复位成花圈：漏了这步就会：用户取色后按 Esc 取消、再截图出不来框。
     // 点一下花圈按钮＝复用现成的切换（连高亮与光标一起改），不新写一套。
     const pen = document.querySelector('[data-tool="pen"]');
     if (pen) pen.click();
-    // 颜色也复位成默认红（老板：默认要用红色）：同样复用现成的红块点击，不新写一套。
+    // 颜色也复位成默认红：同样复用现成的红块点击，不新写一套。
     const red = document.querySelector('.shot-color[data-color="#ff3b30"]');
     if (red) red.click();
     sel = null; marks = []; redo = []; drawing = false; cur = null; mosaicImg = null;
@@ -96,7 +96,7 @@
     c.height = Math.round(vh * dpr);
     c.style.width = vw + 'px';
     c.style.height = vh + 'px';
-    scale = img ? img.naturalWidth / vw : dpr;   // 以实际抓到的图宽为准，比猜 dpr 可靠
+    scale = img ? img.naturalWidth / vw : dpr; // 以实际抓到的图宽为准，比猜 dpr 可靠
   }
 
   /* ---------- 重画 ---------- */
@@ -106,7 +106,7 @@
     if (!c || !img) return;
     const dpr = window.devicePixelRatio || 1;
     const ctx = c.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);      // 之后全按 CSS 像素画
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // 之后全按 CSS 像素画
     const vw = window.innerWidth, vh = window.innerHeight;
     ctx.clearRect(0, 0, vw, vh);
     ctx.drawImage(img, 0, 0, vw, vh);
@@ -155,10 +155,10 @@
     const p = m.pts;
     if (m.tool === 'mosaic') {
       // 涂抹：笔路上每一点放一个圆，圆合起来就是裁剪区，把整屏马赛克填进去 → 涂到哪哪是马赛克。
-      // （上一版拿黑色描边当裁剪区，黑色露出来就是老板看到的「黑框」——不要描边。）
+
       const mo = mosaicImg || buildMosaic();
       if (!mo) return;
-      const r = (m.size || 4) * 3;              // 圆圈大小跟着「细/中/粗」变
+      const r = (m.size || 4) * 3; // 圆圈大小跟着「细/中/粗」变
       ctx.save();
       ctx.beginPath();
       for (const q of p) { ctx.moveTo(q.x + r, q.y); ctx.arc(q.x, q.y, r, 0, Math.PI * 2); }
@@ -176,7 +176,7 @@
       return;
     }
     const a = p[0], b = p[p.length - 1];
-    if (m.tool === 'sel') {                     // 框选的橡皮框：按住拖动就要看见，不是松手才出
+    if (m.tool === 'sel') { // 框选的橡皮框：按住拖动就要看见，不是松手才出
       ctx.strokeStyle = '#4c8dff';
       ctx.lineWidth = 2;
       ctx.strokeRect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y));
@@ -195,7 +195,7 @@
     }
     if (m.tool === 'arrow') {
       const ang = Math.atan2(b.y - a.y, b.x - a.x);
-      const hl = Math.max(10, (m.size || size) * 4);   // 箭头大小跟着「细/中/粗」变
+      const hl = Math.max(10, (m.size || size) * 4); // 箭头大小跟着「细/中/粗」变
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
       ctx.lineTo(b.x, b.y);
@@ -210,7 +210,7 @@
     }
     if (m.tool === 'text') {
       ctx.font = `${m.size || 18}px "Microsoft YaHei", "Segoe UI", sans-serif`;
-      ctx.fillText(m.text, a.x, a.y);          // 就填一个色，不加描边不加风格
+      ctx.fillText(m.text, a.x, a.y); // 就填一个色，不加描边不加风格
     }
   }
 
@@ -249,15 +249,15 @@
     const p = pos(ev);
     // 正在打字时点到别处：先把这段字落定（保留），再在这一点开新的输入框。
     if (textEl) { commitText(); openText(p); return; }
-    if (!sel) {                     // 还没选区：不管选的什么工具，按下都先框选。
-      drawing = true; cur = { tool: 'sel', pts: [p] };   // （老板报的「卡在取色器上」：取色后取消再截图，
-      return;                       //   工具还停在取色 → 按下只取色不框选 → 出不来框）
+    if (!sel) { // 还没选区：不管选的什么工具，按下都先框选。
+      drawing = true; cur = { tool: 'sel', pts: [p] }; // （「卡在取色器上」：取色后取消再截图
+      return; // 工具还停在取色 → 按下只取色不框选 → 出不来框）
     }
-    if (tool === 'pick') { pickColor(p); return; }   // 取色不受选区限制（微信那样）
-    if (!inSel(p)) return;          // 选区外不管：先选区再标注
+    if (tool === 'pick') { pickColor(p); return; } // 取色不受选区限制（微信那样）
+    if (!inSel(p)) return; // 选区外不管：先选区再标注
     if (tool === 'text') { ev.preventDefault(); hideLoupe(); openText(p); redraw(); return; }
     drawing = true;
-    loupeAt = null;                  // 拖标注时放大镜让开，不挡要画的地方
+    loupeAt = null; // 拖标注时放大镜让开，不挡要画的地方
     cur = { tool, color, size, pts: [p] };
   }
 
@@ -266,14 +266,14 @@
     const p = pos(ev);
     if (drawing && cur) {
       const last = cur.pts[cur.pts.length - 1];
-      // 没挪够 1 像素就不记点也不重画：点少一半，重画就快（老板要的「顺畅」）。
+      // 没挪够 1 像素就不记点也不重画：点少一半，重画就快。
       if (Math.abs(p.x - last.x) < 1 && Math.abs(p.y - last.y) < 1) return;
       loupeAt = cur.tool === 'sel' ? p : null;
       cur.pts.push(p);
       redraw();
       return;
     }
-    // 放大镜只在「还没框选区」时跟鼠标走（框选要精细到坐标）；选区定完就没，
+    // 放大镜只在「还没框选区」时跟鼠标走（框选要精细到坐标）；选区定完就没
     // 除非正取色（取色本来就要看清那个像素）。
     loupeAt = (!sel || tool === 'pick') ? p : null;
     redraw();
@@ -286,7 +286,7 @@
       const a = cur.pts[0], b = cur.pts[cur.pts.length - 1];
       const w = Math.abs(b.x - a.x), h = Math.abs(b.y - a.y);
       cur = null;
-      if (w < 6 || h < 6) { redraw(); return; }   // 点一下不算选区
+      if (w < 6 || h < 6) { redraw(); return; } // 点一下不算选区
       sel = { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w, h };
       setStage('mark');
       redraw();
@@ -308,7 +308,7 @@
     textEl = document.createElement('textarea');
     textEl.className = 'shot-text';
     textEl.rows = 1;
-    textEl.at = p;                              // 落点直接挂在输入框上，不再单独记一个变量
+    textEl.at = p; // 落点直接挂在输入框上，不再单独记一个变量
     textEl.style.left = p.x + 'px';
     textEl.style.top = (p.y - 18) + 'px';
     textEl.style.color = color;
@@ -354,7 +354,7 @@
     } catch (e) { return null; }
   }
 
-  // 读已画出来的像素（自检用）；坐标已是该 ctx 的实际像素。
+  // 读已画出来的像素；坐标已是该 ctx 的实际像素。
   function readPixel(ctx, x, y) {
     try {
       const d = ctx.getImageData(Math.round(x), Math.round(y), 1, 1).data;
@@ -385,7 +385,7 @@
     pickEl.style.left = Math.max(4, Math.min(p.x + 14, window.innerWidth - 200)) + 'px';
     pickEl.style.top = Math.max(4, Math.min(p.y + 14, window.innerHeight - 96)) + 'px';
     $('shot').appendChild(pickEl);
-    // 取到的颜色只亮在色块排里给老板点用，**不偷偷改画笔色**（老板报「默认红，点两回都是白」：
+    // 取到的颜色只亮在色块排里给用户点用，**不偷偷改画笔色**（用户报「默认红，点两回都是白」
     // 先取色就把画笔改成了桌面那个近白色）。
     const sw = $('shot-color-custom');
     if (sw) {
@@ -412,7 +412,7 @@
     const cell = LOUPE_CELL;
     const srcW = Math.floor(LOUPE_W / cell), srcH = Math.floor((LOUPE_H - LOUPE_BAR) / cell);
     const drawW = srcW * cell, drawH = srcH * cell;
-    const cx = Math.round(p.x * scale), cy = Math.round(p.y * scale);   // 图上的像素坐标
+    const cx = Math.round(p.x * scale), cy = Math.round(p.y * scale); // 图上的像素坐标
     const sx = Math.max(0, Math.min(cx - (srcW >> 1), img.naturalWidth - srcW));
     const sy = Math.max(0, Math.min(cy - (srcH >> 1), img.naturalHeight - srcH));
     let left = p.x + 20, top = p.y + 20;
@@ -472,7 +472,7 @@
     out.height = Math.max(1, Math.round(sel.h * scale));
     const c2 = out.getContext('2d');
     c2.drawImage(img, Math.round(sel.x * scale), Math.round(sel.y * scale), out.width, out.height, 0, 0, out.width, out.height);
-    c2.scale(scale, scale);                       // 之后按 CSS 像素画标注
+    c2.scale(scale, scale); // 之后按 CSS 像素画标注
     marks.forEach((m) => drawMarkAt(c2, m, -sel.x, -sel.y));
     return out.toDataURL('image/png');
   }
@@ -481,7 +481,7 @@
   function drawMarkAt(ctx, m, dx, dy) {
     drawMark(ctx, {
       tool: m.tool, color: m.color, size: m.size, text: m.text,
-      ox: dx, oy: dy,                          // 马赛克整屏铺图也要跟着平移
+      ox: dx, oy: dy, // 马赛克整屏铺图也要跟着平移
       pts: m.pts.map((q) => ({ x: q.x + dx, y: q.y + dy })),
     });
   }
@@ -496,13 +496,13 @@
     await endShot();
     try {
       const path = await api().SaveShot(dataURL);
-      // 不直接排队：跟传文件一样先进待发区，让老板先写要说的话再点「加入队列」。
+      // 不直接排队：跟传文件一样先进待发区，让用户先写要说的话再点「加入队列」。
       if (window.addShotToPending) window.addShotToPending(path);
       feed('截图已放进待发区（和传文件一样）：先写要说的话，再点「加入队列」。');
     } catch (e) { feed('存图失败：' + e.message); }
   }
 
-  // 另存为：弹系统「另存为」对话框让老板选地方（原来只闷在程序目录里，老板报「保存下载那个功能没有用」）。
+  // 另存为：弹系统「另存为」对话框让用户选地方。
   async function saveOnly() {
     if (!sel) { feed('先用鼠标框出要截的区域。'); return; }
     dropText();
@@ -542,7 +542,7 @@
   // 马赛克的圆圈现给（不写死在 CSS 里）：直径跟「细/中/粗」变，跟涂出来的圆一样大。
   const CURSORS = { pen: 'cur-draw', rect: 'cur-draw', ellipse: 'cur-draw', arrow: 'cur-draw', mosaic: 'cur-mosaic', text: 'cur-text', pick: 'cur-pick' };
   function mosaicCursor(sz) {
-    const d = Math.min(sz * 6, 32);              // Windows 自定义光标最大就 32 像素，粗挡到底
+    const d = Math.min(sz * 6, 32); // Windows 自定义光标最大就 32 像素，粗挡到底
     const h = d / 2, r = h - 2;
     return `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="${d}" height="${d}">` +
       `<circle cx="${h}" cy="${h}" r="${r}" fill="rgba(255,255,255,0.15)" stroke="black" stroke-width="2"/>` +
@@ -582,16 +582,16 @@
       document.querySelectorAll('.shot-tool').forEach((x) => x.classList.toggle('active', x === b));
       setCursor();
       dropText();
-      dropPick();          // 老板报的「取色卡框卡着」：切工具时要把取色卡片清掉
+      dropPick(); // 「取色卡框卡着」：切工具时要把取色卡片清掉
     });
-    // 按下不抢输入框焦点（preventDefault）：打字中也能换颜色，文字不落定、不消失（老板报的「改颜就落定/没了」）。
+    // 按下不抢输入框焦点（preventDefault）：打字中也能换颜色，文字不落定、不消失。
     $('shot-colors').addEventListener('mousedown', (ev) => { if (textEl) ev.preventDefault(); });
     $('shot-colors').addEventListener('click', (ev) => {
       const s = ev.target.closest('.shot-color');
       if (!s) return;
       color = s.dataset.color;
       document.querySelectorAll('.shot-color').forEach((x) => x.classList.toggle('active', x === s));
-      if (textEl) { textEl.style.color = color; textEl.style.caretColor = color; }   // 正在打的字直接跟着变色
+      if (textEl) { textEl.style.color = color; textEl.style.caretColor = color; } // 正在打的字直接跟着变色
     });
     $('shot-undo').addEventListener('click', undo);
     $('shot-redo').addEventListener('click', redoLast);
@@ -601,7 +601,7 @@
       if (!b) return;
       size = Number(b.dataset.size) || 4;
       document.querySelectorAll('.shot-size').forEach((x) => x.classList.toggle('active', x === b));
-      setCursor();                              // 换了粗细，马赛克圆圈光标也要跟着变大小
+      setCursor(); // 换了粗细，马赛克圆圈光标也要跟着变大小
     });
     $('shot-done').addEventListener('click', finish);
     $('shot-save').addEventListener('click', saveOnly);
@@ -609,7 +609,7 @@
 
     window.addEventListener('keydown', async (ev) => {
       if ($('shot').classList.contains('hidden')) return;
-      if (textEl) return;                      // 打字时不抢键
+      if (textEl) return; // 打字时不抢键
       if (ev.key === 'Escape') { ev.preventDefault(); endShot(); }
       else if (ev.key === 'Enter') { ev.preventDefault(); finish(); }
       else if (ev.key === 'z' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); undo(); }
@@ -653,7 +653,7 @@
           sel = null; marks = []; redo = [];
           canvas().dispatchEvent(mk('mousedown', vw * 0.2, vh * 0.2));
           window.dispatchEvent(mk('mousemove', vw * 0.6, vh * 0.55));
-          // 必须在松手前探：①橡皮框要已经画出来（老板报「松手才出框」）②放大镜要在。
+          // 必须在松手前探：①橡皮框要已经画出来②放大镜要在。
           const rbBlue = [-2, -1, 0, 1, 2].some((d) => canvasColorAt(vw * 0.2 + d, vh * 0.38) === '#4c8dff');
           say(`框选拖动中橡皮框${rbBlue ? '已画出' : '没画出'}；放大镜${loupeInfo.shown ? '在' : '没显示'} 中心 ${loupeInfo.x},${loupeInfo.y} 色 ${loupeInfo.hex || '—'}`);
           window.dispatchEvent(mk('mouseup', vw * 0.6, vh * 0.55));
@@ -709,14 +709,14 @@
           say(`马赛克 涂到处 ${got || '—'} 应=马赛克色 ${exp || '—'} → ${got && got === exp ? '对' : '不对'}；笔迹外 ${out || '—'}${out === outOrig ? '=原图（没涂黑）' : '≠原图 ' + outOrig + '（被涂黑了）'}`);
           const src = drawMark.toString();
           say(`画法检查：文字描边=${/strokeText/.test(src) ? '还在（应删）' : '已删'}；马赛克黑描边=${/'#000'/.test(src) ? '还在（应删）' : '已删'}；${marks.length} 笔（涂抹笔点数=${marks[marks.length - 1].pts.length}）`);
-          // 文字：点一下应该出输入框并拿到焦点（老板报「写不上」），光标要是文本状
+          // 文字：点一下应该出输入框并拿到焦点，光标要是文本状
           tool = 'text'; setCursor();
           say(`文字工具光标=${canvas().className || '无'}（要 cur-text）`);
           canvas().dispatchEvent(mk('mousedown', vw * 0.3, vh * 0.5));
           await new Promise((r) => setTimeout(r, 120));
           const focused = textEl && document.activeElement === textEl;
           if (textEl) textEl.value = '第一段';
-          // 再点第二个位置：第一段要保留（老板报的逻辑问题）
+          // 再点第二个位置：第一段要保留
           canvas().dispatchEvent(mk('mousedown', vw * 0.3, vh * 0.62));
           await new Promise((r) => setTimeout(r, 120));
           const kept1 = marks.filter((m) => m.tool === 'text').length;
@@ -724,8 +724,8 @@
           commitText();
           const texts = marks.filter((m) => m.tool === 'text').map((m) => m.text);
           say(`打字：输入框${focused ? '拿到焦点' : '没拿到焦点'}；两段都在=${texts.length === 2 && texts[0] === '第一段' && texts[1] === '第二段' ? '是' : '否'} → ${JSON.stringify(texts)}`);
-          // 打字中换颜色：不能落定、不能丢字，输入框要跟着变色（老板报的「改选颜色有问题」）。
-          // 探测点必须在选区内：选区外 onDown 直接 return，输入框根本不开（上轮探测就栽在这，报了假「丢了」）。
+          // 打字中换颜色：不能落定、不能丢字，输入框要跟着变色。
+          // 探测点必须在选区内：选区外 onDown 直接 return，输入框根本不开。
           canvas().dispatchEvent(mk('mousedown', vw * 0.3, vh * 0.45));
           await new Promise((r) => setTimeout(r, 120));
           const nBefore = marks.length;
@@ -737,8 +737,8 @@
           await new Promise((r) => setTimeout(r, 80));
           say(`打字中点绿块：文字${keptFocus ? '还在输入（没落定没丢字）' : '被落定/丢了（不对）'}；输入框色=${textEl ? textEl.style.color : '—'}（要 rgb(52, 199, 89)）`);
           if (textEl) { textEl.value = '变色测试'; commitText(); }
-          // 马赛克圆圈光标必须跟「细/中/粗」变大小（老板报的「图样不随大小变」）
-          // 探法：不拆 style.cursor 的引号（Chromium 会把 " 转义成 \"，拆不到），
+          // 马赛克圆圈光标必须跟「细/中/粗」变大小
+          // 探法：不拆 style.cursor 的引号（Chromium 会把 " 转义成 \"，拆不到）
           // 直接看浏览器实际生效的 cursor 里 width= 后面那个数。
           tool = 'mosaic';
           const cw = (s) => { const m = /width=\\?["']?(\d+)/.exec(s || ''); return m ? Number(m[1]) : 0; };
@@ -747,7 +747,7 @@
           size = 4; setCursor();
           const raw = getComputedStyle(canvas()).cursor.slice(0, 46);
           say(`马赛克光标直径 细=${dFine} 中=${dMid} 粗=${dFat} → ${dFine < dMid && dMid < dFat ? '随粗细变' : '不随粗细变（不对）'}；类=${canvas().className || '无'}（要 cur-mosaic）；生效值=${raw || '空（没挂上）'}`);
-          // 取色器：点一下取颜色，再看切工具后卡片会不会清掉（老板报的「取色框框卡着」）
+          // 取色器：点一下取颜色，再看切工具后卡片会不会清掉
           tool = 'pick'; setCursor(); color = '#ff3b30';
           canvas().dispatchEvent(mk('mousedown', vw * 0.5, vh * 0.5));
           const gotPick = picked;
@@ -763,9 +763,9 @@
           say(`存盘 OK → ${path}`);
           await endShot();
           say(`退全屏后视口 ${window.innerWidth}x${window.innerHeight}；待发区接应=${window.addShotToPending ? '在' : '没接上'}`);
-          // 老板报的坑：取色后按 Esc 取消，再截图出不来框（卡在取色器上）→ 专门验一遍。
+          // 坑：取色后按 Esc 取消，再截图出不来框（卡在取色器上）→ 专门验一遍。
           tool = 'pick'; setCursor();
-          await endShot();                       // 模拟取消：看工具会不会被复位
+          await endShot(); // 模拟取消：看工具会不会被复位
           const s2 = await api().CaptureScreen();
           await new Promise((r) => { img = new Image(); img.onload = r; img.src = 'data:image/png;base64,' + s2.b64; });
           $('shot').classList.remove('hidden'); fitCanvas(); setStage('sel'); redraw();
@@ -789,7 +789,7 @@
     } catch (e) {
       say('抓屏失败：' + e.message);
       try { await api().ExitShot(); } catch (_) { /* 没全屏成功就不用退 */ }
-    }   // 给 app.js 里的入口用
+    } // 给 app.js 里的入口用
   }
 
   if (document.readyState === 'loading') {

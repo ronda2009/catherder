@@ -82,8 +82,8 @@ func (e *Engine) tickShutdown(included map[string]bool, wins map[string]openclaw
 	}
 	e.out("执行关机（shutdown /s /t 0 /f）")
 	e.st.Log("shutdown", "队列清空且全空闲，执行关机")
-	// /f = 强制：直接关掉挡住关机的程序。不加它，Windows 碰到「有程序阻止关机」会弹框等人点，
-	// 命令其实已经下达、机器却一直没关（老板 2026-10-28 夜里就是这么卡住的）。
+	// /f = 强制：直接关掉挡住关机的程序。不加它，Windows 碰到「有程序阻止关机」会弹框等人点
+	// 命令其实已经下达、机器却一直没关。
 	cmd := exec.Command("shutdown", "/s", "/t", "0", "/f")
 	if err := cmd.Run(); err != nil {
 		e.disarm("关机命令失败: " + err.Error())
@@ -125,7 +125,7 @@ func (e *Engine) shutdownReady(included map[string]bool, wins map[string]opencla
 	if err != nil {
 		return false, "读任务数失败"
 	}
-	// 「正在改」的那条也算未完成：别在老板改的时候判定队列空去关机。
+	// 「正在改」的那条也算未完成：用户编辑期间不判队列空去关机。
 	if c["queued"]+c["dispatched"]+c["paused"]+c["editing"] > 0 {
 		return false, "仍有任务未完成"
 	}
@@ -153,7 +153,7 @@ func (e *Engine) shutdownReady(included map[string]bool, wins map[string]opencla
 			return false, "模型服务还在忙"
 		}
 	}
-	// 显卡还在动也算没空闲（与派发闸门同一个口径，老板 2026-10-27）。
+	// 显卡还在动也算没空闲。
 	if e.flagOn("gate_gpu", true) {
 		if busy, known, why := e.gpuBusy(); known && busy {
 			return false, why

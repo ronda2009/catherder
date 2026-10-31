@@ -8,7 +8,7 @@ func startTrayImpl(a *App, iconBytes []byte) error { return nil }
 // trayIconPath 非 Windows 不落临时图标文件。
 func trayIconPath() string { return "" }
 
-// trayAvailable 托盘到底起来没有（没起来时点叉就该正常退出，别把用户的窗口藏没了）。
+// trayAvailable 托盘到底起来没有。
 func trayAvailable() bool { return false }
 
 func trayHideWindow(a *App) {}

@@ -10,7 +10,7 @@ import (
 	"golang.org/x/sys/windows/registry"
 )
 
-// 开机自启只动「当前用户」的 Run 键（HKCU），写一个值、取消就删这个值：
+// 开机自启只动「当前用户」的 Run 键（HKCU），写一个值、取消就删这个值
 // 不需要管理员权限，不动服务、不动机器级配置，随时可撤。
 const (
 	runKey    = `Software\Microsoft\Windows\CurrentVersion\Run`

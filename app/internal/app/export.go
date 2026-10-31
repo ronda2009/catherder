@@ -10,10 +10,10 @@ import (
 )
 
 // ExportCSV 弹窗让用户选存哪儿（默认名带日期）。按取消返回空字符串，不算失败。
-// scope 是导出范围（用户 2026-10-25 问「条目多了怎么办」）：
+// scope 是导出范围
 // "50"/"200"/"7d"/"30d"/"all"；空或认不出＝最近 5000 条（旧行为）。
 func (a *App) ExportCSV(scope string) (string, error) {
-	// 文件名跟面板一个叫「工头派工台」（用户 2026-10-25 点头）。
+	// 文件名跟面板一个叫「工头派工台」。
 	def := fmt.Sprintf(uiT("工头派工台记录")+"-%s.csv", time.Now().Format("200601-1504"))
 	path, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		DefaultFilename: def,
@@ -37,7 +37,7 @@ func (a *App) ExportCSV(scope string) (string, error) {
 }
 
 // exportRange 把界面那个下拉的选项翻成「条数上限 + 起始时刻 + 给人看的说法」。
-// 选项与默认值按用户 2026-10-25 定的：50 / 200 / 1000 / 1 天 / 3 天 / 7 天 / 30 天 / 全部，默认 50 条。
+// 选项与默认值默认档位：50 / 200 / 1000 / 1 天 / 3 天 / 7 天 / 30 天 / 全部，默认 50 条。
 func exportRange(scope string) (int, int64, string) {
 	dayMs := int64(24 * 3600 * 1000)
 	switch strings.ToLower(strings.TrimSpace(scope)) {

@@ -15,7 +15,7 @@ import (
 )
 
 // 显卡利用率（Windows）：走系统性能计数器 `\GPU Engine(*)\Utilization Percentage`。
-// 这条路是**厂商中立**的 —— NVIDIA / AMD / Intel 的 WDDM 驱动都提供同一个计数器，
+// 这条路是**厂商中立**的 —— NVIDIA / AMD / Intel 的 WDDM 驱动都提供同一个计数器
 // 所以开源出去三家机器都能用，不像 nvidia-smi 只认 N 卡。
 // 用 PdhAddEnglishCounterW（英文计数器名）→ 跟系统显示语言无关，中文系统也一样读得到。
 
@@ -36,7 +36,7 @@ const (
 	pdhCstatusNewData = 0x00000001 // PDH_CSTATUS_NEW_DATA
 )
 
-// pdhFmtCounterValueItem 对应 PDH_FMT_COUNTERVALUE_ITEM_W（64 位）：
+// pdhFmtCounterValueItem 对应 PDH_FMT_COUNTERVALUE_ITEM_W（64 位）
 // 名字指针(8) + CStatus(4) + 对齐补空(4) + double 值(8) = **24 字节**。
 // 步长本机实测过（拿 24/40/48/56/64/128 逐个试，只有 24 能让 672 个实例名全部合法）。
 // 注意 bufSize/itemCount ≈151 不是步长 —— 实例名另存在缓冲区后半段。
@@ -46,7 +46,7 @@ type pdhFmtCounterValueItem struct {
 	Value   float64
 }
 
-// PDH 的利用率是「两次采样之间的平均值」，所以查询句柄要**跨轮留着**：
+// PDH 的利用率是「两次采样之间的平均值」，所以查询句柄要**跨轮留着**
 // 每轮只采一次，读的就是「上一轮到这一轮」这段的平均占用。
 var (
 	gpuPdhMu      sync.Mutex

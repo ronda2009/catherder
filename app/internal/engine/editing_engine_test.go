@@ -6,7 +6,7 @@ import (
 	"catherder/internal/openclaw"
 )
 
-// 正在就地修改的那条任务：算「还没完」，不能趁老板改的时候判定队列空去关机，
+// 正在就地修改的那条算「还没完」：用户编辑期间不判队列空去关机
 // 也不能被「全部异常」那条逻辑误判成停机。
 func TestEditingCountsAsUnfinished(t *testing.T) {
 	e := newTestEngine(t)

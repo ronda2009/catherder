@@ -2,8 +2,8 @@
 // 已知：HTTP /tools/invoke 的 message 工具 404（被策略拒），sessions_send 也在 HTTP 硬拒绝表。
 // 派发已验证走 WS sessions.send。转发候选逐个探针（都传坏参数，不真发消息）：
 //
-//	WS: message.send / messages.send / conversations.send / chat.send(坏会话键)
-//	HTTP: conversations_send / message(带 x-openclaw-message-channel 头)
+// WS: message.send / messages.send / conversations.send / chat.send(坏会话键)
+// HTTP: conversations_send / message(带 x-openclaw-message-channel 头)
 //
 // 判读：方法不存在=明确报错；参数错/会话不存在=方法活着。
 package main

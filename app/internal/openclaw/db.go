@@ -17,7 +17,7 @@ type Window struct {
 	Key       string
 	ID        string // current_session_id，查对话流水用
 	Label     string
-	Status    string // 空 = 正在跑（实测：库里 NULL 表示运行中）
+	Status    string // 空 = 正在跑
 	UpdatedAt int64
 	CreatedAt int64 // 建窗时间：定「固定顺序」用，不随活动变
 	PinnedAt  int64 // 用户在 OpenClaw 里置顶过的窗口排最前
@@ -32,8 +32,8 @@ func (w *Window) Idle() bool {
 	return w.Status == "done" || w.Status == "failed" || w.Status == "killed"
 }
 
-// Schedulable 排除心跳/定时任务/子代理/系统内部造出来的窗口（实测本机 42 个里这类占 26 个）。
-// internal-session-effects、selfcheck 这类是 OpenClaw 自己开的内部会话（实测漏过两个），
+// Schedulable 排除心跳/定时任务/子代理/系统内部造出来的窗口。
+// internal-session-effects、selfcheck 这类是 OpenClaw 自己开的内部会话
 // 派活给它们没意义，还会把清单挤乱。
 func (w *Window) Schedulable() bool {
 	k := w.Key
@@ -77,8 +77,8 @@ type entryShape struct {
 }
 
 func (d *DB) Windows() ([]Window, error) {
-	// 列里的 pinned_at / created_at / archived_at 是后加的一列（实测 session_nodes 有这些列）。
-	// 排序不能按 updated_at：那个字段每有动静就变，界面会上下串行（用户 2026-10-24 反馈）。
+	// 列里的 pinned_at / created_at / archived_at 是后加的一列。
+	// 排序不能按 updated_at：那个字段每有动静就变，界面会上下串行。
 	// 这里只取数据，固定顺序由引擎排（置顶优先 → 建窗时间 → 键名）。
 	rows, err := d.sql.Query(`SELECT session_key, current_session_id, status, updated_at, entry_json,
 		COALESCE(created_at, 0), COALESCE(pinned_at, 0), archived_at IS NOT NULL
@@ -125,8 +125,8 @@ func (d *DB) Windows() ([]Window, error) {
 }
 
 // OrderWindows 定「固定顺序」：置顶优先 → 建窗时间（早的在前）→ 窗口键。
-// 不能按 updated_at 排：那个字段每有动静（勾选、刷新、派活、收到消息）就变，
-// 清单就会上下串行（用户 2026-10-24 反馈「勾选窗口会上下串行、点过去也变一下、下拉菜单也变」）。
+// 不能按 updated_at 排：那个字段每有动静（勾选、刷新、派活、收到消息）就变
+// 清单就会上下串行。
 // 建窗时间和窗口键都不随活动变 → 只要窗口没新建/删除，位置就钉死。
 // 置顶跟 OpenClaw 控制界面一致：用户在那边置顶了，这边也跟着排最前。
 func OrderWindows(list []Window) {
@@ -147,10 +147,10 @@ func OrderWindows(list []Window) {
 	})
 }
 
-// pendingBySession：consumed_event_id 为空 = 这条输入还没被回合消费（表结构实测）。
+// pendingBySession：consumed_event_id 为空 = 这条输入还没被回合消费。
 // 但**还得排掉已作废的**：state 为 cancelled / interrupted 的那批永远不会再被消费
-// （本机实测：未消费的 7 条全是这两种，最早一条已挂 10 天）。
-// 不排掉就会把窗口永远当成「还有话没处理」→ 排队任务永远派不出去（用户 2026-10-24 反馈）。
+// 。
+// 不排掉就会把窗口永远当成「还有话没处理」→ 排队任务永远派不出去。
 func (d *DB) pendingBySession() (map[string]int, error) {
 	rows, err := d.sql.Query(`SELECT session_key, COUNT(*) FROM session_pending_inputs
 		WHERE consumed_event_id IS NULL

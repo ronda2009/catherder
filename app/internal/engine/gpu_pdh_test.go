@@ -3,9 +3,9 @@
 // 真机验显卡采集（性能计数器那条路）。默认跳过，手动跑时才真读。
 // 跑法：$env:CATHERDER_REAL_GPU='1'; go test -count=1 -run TestGpuPercentReal -v ./internal/engine/
 //
-//	TestGpuPercentReal        —— 只读一次，看 known 是不是 true、数在不在 0~100
-//	TestGpuGateBlocksReal     —— 自己起一段真 GPU 负载，验「连续两轮超阈值才判忙」真生效
-//	TestGpuGateFreesAfterReal —— 负载撤掉后闸门要能自己放开（别一直拦着）
+// TestGpuPercentReal —— 只读一次，看 known 是不是 true、数在不在 0~100
+// TestGpuGateBlocksReal —— 自己起一段真 GPU 负载，验「连续两轮超阈值才判忙」真生效
+// TestGpuGateFreesAfterReal —— 负载撤掉后闸门要能自己放开（别一直拦着）
 package engine
 
 import (

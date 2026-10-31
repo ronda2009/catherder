@@ -1,5 +1,5 @@
 // spike2: M1d 尖测 —— 外部程序怎么把消息送进指定会话。
-// 两条路都实测：A) HTTP /tools/invoke（文档说 sessions_send 默认在 HTTP 硬拒绝表里，
+// 两条路都实测：A) HTTP /tools/invoke（文档说 sessions_send 默认在 HTTP 硬拒绝表里
 // 要靠 gateway.tools.allow 放行——本机没配，预期 404，实测确认）；
 // B) WebSocket RPC sessions.send（CLI 走的就是这条，token 鉴权）。
 // 用不存在的会话键试探：404=工具被拒，400/404-not-found 类=工具活着但找不到会话。

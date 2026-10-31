@@ -46,7 +46,7 @@ func (a *App) ChooseNoNotify() error {
 func (a *App) RetryProbe() (Probe, error) {
 	a.st.SetSetting("notify_choice_made", "")
 	a.st.SetSetting("notify_off", "")
-	// 配置可能是刚改的：重读一遍再报（换机器时用户可能刚把 openclaw.json 放好）。
+	// 配置可能是刚改的：重读一遍再报。
 	if a.cfg.Path != "" {
 		if c, err := openclaw.LoadConfig(a.cfg.Path); err == nil {
 			a.cfg = c

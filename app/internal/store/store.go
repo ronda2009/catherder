@@ -13,7 +13,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-// json 标签是给界面用的：不加标签 Go 会把字段名原样输出成 ID/Body/TargetKey，
+// json 标签是给界面用的：不加标签 Go 会把字段名原样输出成 ID/Body/TargetKey
 // 前端按小驼峰取就全是 undefined。
 type Task struct {
 	ID           int      `json:"id"`
@@ -65,8 +65,8 @@ func Open(path string) (*Store, error) {
 
 // RecoverEditing 界面版启动时调：把上次没按「改好了」就关掉的条推回排队。
 // 没存的内容本来就已经丢了，卡在「正在改」还会挡住自动关机。
-// 只在界面版启动时做，不能放进 Open：命令行每条命令都开一次库，
-// 那样老板正在界面里改着、随手跑一条 `queue` 就会把这条打回排队。
+// 只在界面版启动时做，不能放进 Open：命令行每条命令都开一次库
+// 那样用户正在界面里改着时，随手跑一条 `queue` 就会把这条打回排队。
 func (s *Store) RecoverEditing() {
 	_, _ = s.db.Exec(`UPDATE tasks SET state='queued', editing_at=0 WHERE state='editing'`)
 }
@@ -174,15 +174,15 @@ func (s *Store) Dispatched() ([]Task, error) {
 	return s.queryTasks(`WHERE state='dispatched' ORDER BY dispatched_at`)
 }
 
-// DispatchedSince 给界面用：本轮开过机以来派出去的任务全部留着，
+// DispatchedSince 给界面用：本轮开过机以来派出去的任务全部留着
 // 已完成的也不抹掉，直到程序关掉；重开就是新的一轮（since 传本次启动时刻）。
 // 引擎算并发仍用 Dispatched()（只数真正在跑的），两者不能混。
 // DispatchedSince 给界面「已派发待回复 + 已完成」：
 //
-//	仍在执行的（dispatched）全留 —— 不管哪轮派出去的，它还没完就该看得见；
-//	已完成的只留本轮完成的 —— 按 done_at 判，不按 dispatched_at。
+// 仍在执行的（dispatched）全留 —— 不管哪轮派出去的，它还没完就该看得见；
+// 已完成的只留本轮完成的 —— 按 done_at 判，不按 dispatched_at。
 //
-// 「上轮派发、本轮才完成」的那条会在判定完成那一刻从界面上直接消失（跳没），
+// 「上轮派发、本轮才完成」的那条会在判定完成那一刻从界面上直接消失（跳没）
 // 用户看不到它变绿，还以为程序把任务弄丢了。
 func (s *Store) DispatchedSince(since int64) ([]Task, error) {
 	return s.queryTasks(`WHERE state='dispatched'
@@ -198,7 +198,7 @@ func (s *Store) queryTasks(where string, args ...any) ([]Task, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	// 空结果也要返空数组，不能留 nil：nil 切片到界面就是 null，
+	// 空结果也要返空数组，不能留 nil：nil 切片到界面就是 null
 	// 界面取 .length 会报「Cannot read properties of null (reading 'length')」
 	out := []Task{}
 	for rows.Next() {
@@ -348,7 +348,7 @@ func (s *Store) Cancel(id int) error {
 }
 
 // StartEditing 把一条排队任务转成「正在改」：内容/发送窗口/附件随便改，改完按「改好了」才参与派发。
-// 目的：老板在队列里点「编辑」不该把上方新建任务里写的长文冲掉（2026-10-27 报），
+// 目的：用户在队列里点「编辑」不该把上方新建任务里写的长文冲掉
 // 而且改的时候引擎不能把它派出去。
 func (s *Store) StartEditing(id int) error {
 	res, err := s.db.Exec(`UPDATE tasks SET state='editing', editing_at=strftime('%s','now')*1000 WHERE id=? AND state='queued'`, id)

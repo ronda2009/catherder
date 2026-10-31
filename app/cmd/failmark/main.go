@@ -1,5 +1,5 @@
 // 临时探针：把某条任务标成异常，用来看界面的「标异常的任务」区与停机横幅。
-// 用法: failmark <任务id> [原因]   （只写派工台自己的库，不碰 OpenClaw、不占模型）
+// 用法: failmark <任务id> [原因] （只写派工台自己的库，不碰 OpenClaw、不占模型）
 package main
 
 import (

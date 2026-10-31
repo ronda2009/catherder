@@ -17,11 +17,11 @@ function api() {
 let windowsCache = [];
 let settingsCache = null;
 let logLines = [];
-let dbgTab = '';   // --tab debug 时把前端自测信息回写到日志
+let dbgTab = ''; // --tab debug 时把前端自测信息回写到日志
 
 /* ---------- 小工具 ---------- */
 
-// 时间统一按「毫秒」传：任务库与 OpenClaw 会话库存的都是毫秒（：
+// 时间统一按「毫秒」传：任务库与 OpenClaw 会话库存的都是毫秒（
 // 当成秒会把提交时间算到几天后、窗口「多久以前动过」永远显示 0 秒前）。
 function fmtTime(ms) {
   if (!ms) return '';
@@ -55,7 +55,7 @@ function serviceShort(s) {
   return tr('服务未知');
 }
 
-/* 顶栏「距下次检查」：引擎是每隔 N 秒跑一轮（不是每条任务各自倒计时），
+/* 顶栏「距下次检查」：引擎是每隔 N 秒跑一轮（不是每条任务各自倒计时）
    所以这里显示的是全局节拍；本地每秒走一秒，不用每次都问后端（用户 2026-10-24 提）。 */
 let nextTickSec = -1;
 function renderNextChip(running, sec, interval) {
@@ -93,7 +93,7 @@ function dur(s) {
 async function refreshOverview() {
   try {
     const o = await api().Overview();
-    // 顶栏徽章一律短词：
+    // 顶栏徽章一律短词
     // 排队 / 执行 / 完成 / 同时 N 窗 / 每 N 秒 / 距下次 N 秒。行话不出现。
     chip($('chip-run'), o.running ? tr('派工中 每 ') + o.interval + tr(' 秒') : tr('已暂停'), o.running ? 'ok' : 'warn');
     chip($('chip-service'), serviceShort(o.service), o.service === '模型服务空闲' ? 'ok' : (o.service === '模型服务繁忙' ? 'warn' : ''));
@@ -210,8 +210,8 @@ async function refreshConfirm() {
 }
 
 async function answerConfirm(accept) {
-  // 默认每次都提醒：弹窗里不再顺手改「不再提醒」，
-  //  mute 固定为空（不改设置），要关只去设置页。
+  // 默认每次都提醒：弹窗里不再顺手改「不再提醒」
+  // mute 固定为空（不改设置），要关只去设置页。
   try {
     await api().AnswerConfirm(accept, '');
     $('modal').classList.add('hidden');
@@ -246,19 +246,19 @@ function renderTargetSelect() {
   if (keep && usable.some((w) => w.key === keep)) sel.value = keep;
 }
 
-/* 队列里就地编辑（老板 2026-10-27）：点「编辑」→ 这条卡片自己变成输入框，
+/* 队列里就地编辑：点「编辑」→ 这条卡片自己变成输入框
    上方「新建任务」里写的字不受影响；改完按「改好了」才参与派发，期间引擎跳过它。
    editCard 存着这张卡片：定时刷新队列时直接把它接回去，不然输入到一半的字会被刷掉。 */
 let editId = 0;
 
-/* 队列里就地编辑（老板 2026-10-27）：点「编辑」→ 这条卡片自己变成输入框，
+/* 队列里就地编辑：点「编辑」→ 这条卡片自己变成输入框
    上方「新建任务」里写的字完全不动；改完按「改好了」才参与派发，期间引擎跳过它、后面的照常派。 */
 function editCardEl(t) {
   const div = document.createElement('div');
   div.className = 'task editing';
   const usable = windowsCache.filter((w) => w.included);
-  // 原窗口万一不在「已勾选」名单里（窗口被取消勾选/暂时没扫到），也要把它列进去并选中，
-  // 否则下拉会默认落到第一个窗口，保存时把发送窗口悄悄换掉（自检抓到过）。
+  // 原窗口万一不在「已勾选」名单里（窗口被取消勾选/暂时没扫到），也要把它列进去并选中
+  // 否则下拉会默认落到第一个窗口，保存时把发送窗口悄悄换掉。
   const optsList = usable.some((w) => w.key === t.targetKey)
     ? usable
     : [{ key: t.targetKey, label: (t.targetLabel || t.targetKey) + '（原窗口）', model: '' }, ...usable];
@@ -284,7 +284,7 @@ function editCardEl(t) {
   div.querySelector('.ed-save').addEventListener('click', () => saveEdit(t.id));
   div.querySelector('.ed-cancel').addEventListener('click', async () => {
     try {
-      await api().CancelEdit(t.id);   // 内容本来就没写进库（按「改好了」才写），这里只把状态推回排队
+      await api().CancelEdit(t.id); // 内容本来就没写进库（按「改好了」才写），这里只把状态推回排队
       feed(`T-${String(t.id).padStart(3, '0')} ` + tr('已放弃修改，按原样排队。'));
     } catch (e) { feed(tr('操作失败：') + e.message); }
     editId = 0;
@@ -393,7 +393,7 @@ function taskCard(t, kind) {
       div.appendChild(acts);
       return editCardEl(t);
     }
-    // 按钮名按老板 2026-10-27 的要求改回「上移 / 下移」（改名没经我授权）。
+    // 按钮名用「上移 / 下移」。
     acts.innerHTML = `<button data-act="up" data-id="${t.id}">${tr('上移')}</button>
       <button data-act="down" data-id="${t.id}">${tr('下移')}</button>
       <button data-act="cancel" data-id="${t.id}" class="danger">${tr('删除')}</button>
@@ -430,8 +430,8 @@ async function refreshQueue() {
     const q = await api().Queue() || [];
     const box = $('queue');
     box.innerHTML = '';
-    // 显示**倒序**（老板 2026-10-27：新的在上，正序往下排看着别扭）。
-    // 派发顺序没变（还是按 prio 从队首往下扫），只是卡片反过来画：
+    // 显示**倒序**。
+    // 派发顺序没变（还是按 prio 从队首往下扫），只是卡片反过来画
     // 所以**最下面那条先派**；「排队第 N」仍按派发顺序算（N 小的先派）。
     $('queue-hint').textContent = q.length
       ? tr('共 ') + q.length + tr(' 条 · 新的在上 · 最下面那条先派')
@@ -497,10 +497,10 @@ async function dbgCheckEdit() {
     const id = Number(btns[btns.length - 1].dataset.id);
     const before = ((await api().Queue()) || []).find((t) => t.id === id);
     if (!before) return;
-    // 「原位置」按**派发顺序**算（屏幕上新的在上，DOM 里最后一个按钮＝派发顺序第1位，
+    // 「原位置」按**派发顺序**算（屏幕上新的在上，DOM 里最后一个按钮＝派发顺序第1位
     // 拿按钮个数当原位置会算错一位）。
     const beforeIdx = ((await api().Queue()) || []).findIndex((t) => t.id === id);
-    $('body').value = '自检占位：新建任务里正在写的字';   // 模拟老板正在上方写新任务
+    $('body').value = '自检占位：新建任务里正在写的字'; // 模拟用户正在上方写新任务
     btns[btns.length - 1].click();
     await new Promise((r) => setTimeout(r, 1200));
     const ta = box.querySelector('.task.editing .ed-body');
@@ -536,7 +536,7 @@ async function refreshDispatched() {
     const d = await api().Dispatched() || [];
     // 一份数据分两堆：**还在跑的**留「已派发待回复」，**判完工的**进「已完成」。
     // 收了回执、还是只凭窗口空闲判完（done_unacked），**都算完成**，只是标签写明区别。
-    // 三个区都**新的在上**（老板 2026-10-27）：后端给的是旧→新，这里倒过来画。
+    // 三个区都**新的在上**：后端给的是旧→新，这里倒过来画。
     const pend = d.filter((t) => t.state === 'dispatched').reverse();
     const fin = d.filter((t) => t.state !== 'dispatched').reverse();
     const box = $('dispatched');
@@ -553,7 +553,7 @@ async function refreshDispatched() {
   } catch (e) { feed(tr('读取执行中任务失败：') + e.message); }
 }
 
-let pickedFiles = [];   // 待发附件（选/拖进来的，加入队列后清空）
+let pickedFiles = []; // 待发附件（选/拖进来的，加入队列后清空）
 
 async function addTask() {
   const key = $('target').value;
@@ -623,7 +623,7 @@ if ($('pending-files')) $('pending-files').addEventListener('click', async (ev) 
   if (t) await openLightbox(Number(t.dataset.i));
 });
 
-// 截图「完成」后先进待发区（和传文件一样），让老板先写要说的话再自己点「加入队列」。
+// 截图「完成」后先进待发区（和传文件一样），让用户先写要说的话再自己点「加入队列」。
 window.addShotToPending = (path) => {
   if (!path) return;
   setPickedFiles(pickedFiles.concat([path]));
@@ -635,7 +635,7 @@ window.addShotToPending = (path) => {
 async function pickFiles() {
   try {
     const ps = await api().PickFiles();
-    if (!ps || !ps.length) return;                    // 用户取消
+    if (!ps || !ps.length) return; // 用户取消
     const warn = await api().CheckFiles(ps);
     if (warn && warn.indexOf('发不出去') === 0) { feed(warn); return; }
     setPickedFiles(pickedFiles.concat(ps));
@@ -769,7 +769,7 @@ async function refreshLog() {
   } catch (e) { $('log').textContent = tr('读日志失败：') + e.message; }
 }
 
-// 日志内容跟着界面语言翻（C 阶段）：日志是本程序自己写的运行记录，不是 OpenClaw 那边发来的文字，
+// 日志内容跟着界面语言翻（C 阶段）：日志是本程序自己写的运行记录，不是 OpenClaw 那边发来的文字
 // 所以英文界面下翻；行里的窗口名、文件路径、报错原文不在词典里，保持原文。
 function renderLog() {
   const el = $('log');
@@ -936,7 +936,7 @@ $('btn-save').addEventListener('click', async () => {
     await refreshDispatched();
     await refreshWindows();
     await loadSettings();
-    await refreshLog();   // 语言一换，日志页的文字要跟着换（日志页开着时立刻见效）
+    await refreshLog(); // 语言一换，日志页的文字要跟着换（日志页开着时立刻见效）
   } catch (e) { $('settings-hint').textContent = tr('保存失败：') + e.message; }
 });
 
@@ -1060,7 +1060,7 @@ async function dbgReportTop() {
     const name = document.querySelector('.brand-name');
     await api().Debug(`顶栏自检 视口宽=${vw} 品牌=${rect(document.querySelector('.brand'))} 标签页=${tabs} 徐章=${chips}`);
     await api().Debug(`图标=${rect(logo)} 文字=${rect(name)}`);
-    // 界面语言自检：切英文→标签页要变英文→切回中文→要还原（只测机制，不改老板存的设置）。
+    // 界面语言自检：切英文→标签页要变英文→切回中文→要还原。
     // 比 textContent（标签页本来就没 title，拿 title 比会拿到空值——探测脚本自己也会错）。
     if (window.__i18n) {
       const tab0 = document.querySelector('.tab[data-tab="dispatch"]');
@@ -1080,7 +1080,7 @@ async function dbgReportTop() {
         await loadSettings();
         sel.value = 'en';
         $('btn-save').click();
-        await new Promise((r) => setTimeout(r, 2000));   // 保存是异步的，等它跑完再看
+        await new Promise((r) => setTimeout(r, 2000)); // 保存是异步的，等它跑完再看
         const afterEn = document.querySelector('.tab[data-tab="dispatch"]').textContent;
         const ss = await api().GetSettings();
         await api().Debug(`[语言自检] 点保存后 标签页=[${afterEn}]（要 Dispatch）设置里 lang=[${ss.lang}]（要 en）`);
@@ -1116,7 +1116,7 @@ async function boot() {
     } catch (_) { /* 读不到就用默认中文 */ }
     const tab = await api().StartTab();
     dbgTab = tab;
-    window.dbgTab = tab;   // 截图模块（shot.js）也要知道开了调试页没有
+    window.dbgTab = tab; // 截图模块（shot.js）也要知道开了调试页没有
     if (tab && tab !== 'debug') {
       const t = document.querySelector(`.tab[data-tab="${tab}"]`);
       if (t) t.click();

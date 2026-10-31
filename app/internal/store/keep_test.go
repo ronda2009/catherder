@@ -1,4 +1,4 @@
-// 「已派发的」保留本轮的测试（用户 2026-10-25：完成的任务不许自动不见，
+// 「已派发的」保留本轮的测试（完成的任务不许自动消失
 // 要一直留在「已派发的」里直到程序关掉；重开就是新的一轮）。
 // 同时守住另一头：引擎算并发用的 Dispatched() 不能把已完成的也算进去。
 package store
@@ -65,7 +65,7 @@ func TestDispatchedSinceKeepsDoneThisRun(t *testing.T) {
 }
 
 // 空结果必须是空数组不是 nil：nil 到界面就是 null，取 .length 会报错
-// （用户 2026-10-25 看到的「Cannot read properties of null (reading 'length')」）。
+// 。
 func TestQueriesReturnEmptyArrayNotNull(t *testing.T) {
 	st, err := Open(filepath.Join(t.TempDir(), "t.sqlite"))
 	if err != nil {

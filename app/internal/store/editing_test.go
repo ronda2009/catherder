@@ -3,7 +3,7 @@ package store
 import "path/filepath"
 import "testing"
 
-// TestEditingFlow 验「队列里就地编辑」：
+// TestEditingFlow 验「队列里就地编辑」
 // 正在改的那条不派发、也不挡后面的任务；改完回到原来的位置；上方新建任务的内容不受影响。
 func TestEditingFlow(t *testing.T) {
 	st, err := Open(filepath.Join(t.TempDir(), "e.sqlite"))

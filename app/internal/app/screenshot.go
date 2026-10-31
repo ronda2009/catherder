@@ -1,6 +1,6 @@
 // 截图功能对界面暴露的四个方法。
 // 分工：Go 只做四件事——抓整屏、进/出全屏、把标注好的图落盘。
-// 选区与画圈/写字全在界面画布里做（复用现成 WebView；Wails v2 不支持第二个窗口，
+// 选区与画圈/写字全在界面画布里做（复用现成 WebView；Wails v2 不支持第二个窗口
 // 自己再写一套 Win32 绘图窗是上一轮被否掉的「往上堆东西」路子）。
 package app
 
@@ -25,8 +25,8 @@ type Shot struct {
 }
 
 // CaptureScreen 只抓整屏那一帧，不全屏。
-// 全屏交给界面在底图解开之后才要（EnterShot）：先全屏再解码，
-// 中间那一瞬看到的是「界面被撑大」，就是老板报的「闪一下 + 放大缩小卡顿」。
+// 全屏交给界面在底图解开之后才要（EnterShot）：先全屏再解码
+// 中间那一瞬看到的是「界面被撑大」，就是「闪一下 + 放大缩小卡顿」。
 func (a *App) CaptureScreen() (Shot, error) {
 	png, w, h, err := screen.GrabScreenPNG()
 	if err != nil {
@@ -83,7 +83,7 @@ func (a *App) SaveShot(dataURL string) (string, error) {
 	return p, nil
 }
 
-// SaveShotAs 弹系统「另存为」对话框让老板选地方存（原来只闷在程序目录里，老板报「保存下载那个功能没有用」）。
+// SaveShotAs 弹系统「另存为」对话框让用户选地方存。
 // 没选（取消）就返回空串，界面据此说「没存」。
 func (a *App) SaveShotAs(dataURL string) (string, error) {
 	b64 := dataURL
@@ -104,7 +104,7 @@ func (a *App) SaveShotAs(dataURL string) (string, error) {
 		return "", fmt.Errorf("另存为对话框失败：%v", err)
 	}
 	if p == "" {
-		return "", nil // 老板在对话框里取消了
+		return "", nil // 用户在对话框里取消了
 	}
 	if err := os.WriteFile(p, raw, 0o644); err != nil {
 		return "", fmt.Errorf("存图失败：%v", err)

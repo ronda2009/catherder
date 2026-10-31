@@ -16,7 +16,7 @@ func (s *Store) ExportCSV(path string) (int, error) {
 	return s.ExportCSVRange(path, 5000, 0)
 }
 
-// ExportCSVRange 按范围导出（用户 2026-10-25：长期用条目会很多，得能选范围）。
+// ExportCSVRange 按范围导出。
 // limit<=0 不限条数；since>0 只要该毫秒时刻之后提交的任务。
 func (s *Store) ExportCSVRange(path string, limit int, since int64) (int, error) {
 	if limit <= 0 {

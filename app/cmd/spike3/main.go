@@ -1,7 +1,7 @@
 // spike3: 转发用的两件事 ——
-//  1. message 工具能不能走 HTTP /tools/invoke（它不在硬拒绝表里，预期可用；
-//     故意传坏参数：400=工具活着，404=被拒，避免真发一条消息打扰用户）
-//  2. transcript_events 里 message 事件的正文到底在哪个字段（转发要截取它）
+// 1. message 工具能不能走 HTTP /tools/invoke（它不在硬拒绝表里，预期可用；
+// 故意传坏参数：400=工具活着，404=被拒，避免真发一条消息打扰用户）
+// 2. transcript_events 里 message 事件的正文到底在哪个字段（转发要截取它）
 package main
 
 import (

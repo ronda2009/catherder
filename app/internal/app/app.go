@@ -1,5 +1,5 @@
 // 界面与核心之间的胶水层：把 engine/store 的能力包成 Wails 能调的方法。
-// 这里不放业务逻辑（都在 internal/engine、internal/store），只做三件事：
+// 这里不放业务逻辑（都在 internal/engine、internal/store），只做三件事
 // 给前端取数据、执行前端指令、把后台循环的动静推给前端。
 package app
 
@@ -29,7 +29,7 @@ type App struct {
 	running  bool
 	interval int
 	nextTick int64 // 下一次检查的时刻（毫秒）；给界面算「距下次检查还剩几秒」
-	bootMs   int64 // 本次开机的时刻；「已派发的」只留本轮（用户 2026-10-25：重开就是新的）
+	bootMs   int64 // 本次开机的时刻；「已派发的」只留本轮
 	startTab string
 	trayIcon []byte
 	imgDir   string // 截图目录
@@ -65,7 +65,7 @@ func (a *App) Startup(ctx context.Context) {
 	}
 	a.eng.SetOut(func(s string) { a.push(s) })
 	a.push(uiT("工头派工台已启动"))
-	// 重启前挂着的「准备关机」先作废：Windows 那边那条待关机已随开机没了，
+	// 重启前挂着的「准备关机」先作废：Windows 那边那条待关机已随开机没了
 	// 标记留着会让界面一开机就挂倒计时，下一轮还会再下一次关机。
 	// 放在 SetOut/push 之后，这句才会进界面日志。
 	a.eng.ResetArmAfterBoot()
@@ -84,8 +84,8 @@ func (a *App) Shutdown(context.Context) { a.StopLoop() }
 
 // ---- 右下角任务栏常驻----
 
-// trayTitle 是右下角图标悬停与气泡显示的名字（入口 --label 给）：
-// 两份并存时靠它区分哪个是老板挂后台的、哪个是我开着测试的。
+// trayTitle 是右下角图标悬停与气泡显示的名字（入口 --label 给）
+// 两份并存时靠它区分正式在跑的与开发调试用的。
 var trayTitle = "工头派工台 CatHerder"
 
 // SetTrayTitle 在起托盘之前设好名字（main.go 解析完参数就调）。
@@ -95,7 +95,7 @@ func SetTrayTitle(s string) {
 	}
 }
 
-// StartTray 起托盘图标。图标读不到时不起托盘：那时点右上角叉就该直接退出，
+// StartTray 起托盘图标。图标读不到时不起托盘：那时点右上角叉就该直接退出
 // 不能把用户的窗口藏没了又没地方叫回来。
 func (a *App) StartTray(iconBytes []byte) {
 	if err := startTrayImpl(a, iconBytes); err != nil {
@@ -107,7 +107,7 @@ func (a *App) StartTray(iconBytes []byte) {
 func (a *App) TrayReady() bool { return trayAvailable() }
 
 // TrayOnClose 读设置：点右上角叉是「收到托盘继续干活」还是「直接退出」。
-// 默认收到托盘（用户要的就是这个）；设置里关掉就回到老行为。
+// 默认收到托盘；设置里关掉就回到老行为。
 func (a *App) TrayOnClose() bool { return a.flagOn("tray_on_close", true) }
 
 // HideMainWindow 藏主窗（托盘还在，双击图标能叫回来）。
@@ -148,11 +148,11 @@ func (a *App) QuitApp() {
 // StartTab 告诉前端启动时先打开哪个页（调试时能直接看到设置/日志页）。
 func (a *App) StartTab() string { return a.startTab }
 
-// BuildStamp 是编译时通过 -ldflags -X 注进来的时刻（例：2026-10-25 00:58）。
-// 界面上显示它，用户和我都能一眼确认跑的是哪一版（避免「改了但看不到变化」的争议）。
+// BuildStamp 是编译时通过 -ldflags -X 注进来的时刻。
+// 界面上显示它，使用者一眼就能确认跑的是哪一版（避免「改了却看不出变化」）。
 var BuildStamp string
 
-// BuildVersion 也是编译时注进来的（例：1.0.0）——正式版要能报出自己是哪一版。
+// BuildVersion 也是编译时注进来的——正式版要能报出自己是哪一版。
 var BuildVersion string
 
 func (a *App) BuildStamp() string { return BuildStamp }
@@ -162,7 +162,7 @@ func (a *App) BuildVersion() string { return BuildVersion }
 // Debug 把前端自测信息写进日志，查界面问题时用（--tab debug 触发）。
 func (a *App) Debug(msg string) { a.push("[前端] " + msg) }
 
-// push 把消息同时送界面与事件日志。界面版是 windowsgui（无控制台），
+// push 把消息同时送界面与事件日志。界面版是 windowsgui（无控制台）
 // 光靠 fmt.Println 看不见，所以再落一份进库里，用 `catherder.exe log` 就能读。
 // 自检信息靠这个拿，比裁图猜可靠。
 
@@ -176,7 +176,7 @@ func (a *App) push(msg string) {
 	}
 }
 
-// quitting 为真表示「真要走」（托盘菜单点退出、或设置里关了收到托盘）：
+// quitting 为真表示「真要走」（托盘菜单点退出、或设置里关了收到托盘）
 // 那时 OnBeforeClose 不能再拦，否则关不掉。
 var quitting bool
 
@@ -315,7 +315,7 @@ type Overview struct {
 	Service   string `json:"service"`
 	QueueLen  int    `json:"queueLen"`
 	DispatchN int    `json:"dispatchN"`
-	DoneN     int    `json:"doneN"` // 顶栏「完成 N」（用户 2026-10-25：状态里缺一个已完成的绿色）
+	DoneN     int    `json:"doneN"` // 顶栏「完成 N」（状态栏要有已完成的计数）
 	ErrorN    int    `json:"errorN"`
 	Shutdown  string `json:"shutdown"`
 	// NextSec：距下一次检查还剩几秒。
@@ -365,7 +365,7 @@ func (a *App) Overview() Overview {
 	if c, err := a.st.Counts(); err == nil {
 		o.ErrorN = c["error"]
 	}
-	// 顶栏「完成 N」与界面「已完成」区必须同一个口径：
+	// 顶栏「完成 N」与界面「已完成」区必须同一个口径
 	// 只算本轮判完工的（收了回执、还是只凭窗口空闲判完，都算）。
 	if d, err := a.st.DispatchedSince(a.bootMs); err == nil {
 		n := 0

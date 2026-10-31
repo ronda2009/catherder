@@ -3,7 +3,7 @@ package engine
 import "testing"
 
 // 窗口清单「勾选会上下串行、点过去也变一下、下拉菜单也变」。
-// 根因是按 updated_at 排（那个字段每有动静就变）。这里锁死两件事：
+// 根因是按 updated_at 排（那个字段每有动静就变）。这里锁死两件事
 // 1) 顺序只由「置顶 → 建窗时间 → 窗口键」决定，跟 updated_at 无关；
 // 2) 勾选状态变了也不影响顺序。
 func TestOrderWindowsStableAgainstActivity(t *testing.T) {
@@ -39,7 +39,7 @@ func TestOrderWindowsStableAgainstActivity(t *testing.T) {
 	}
 	check(b, "勾选变化后")
 
-	// 置顶的排最前（跟 OpenClaw 控制界面一致）：故意置顶建窗最晚的那个，
+	// 置顶的排最前（跟 OpenClaw 控制界面一致）：故意置顶建窗最晚的那个
 	// 若排序正确，它应压过建窗时间跳到第一位。
 	c := append([]WindowInfo{}, base...)
 	for i := range c {

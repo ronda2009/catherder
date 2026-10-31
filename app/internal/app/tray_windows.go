@@ -1,6 +1,6 @@
 //go:build windows
 
-// 右下角任务栏常驻：
+// 右下角任务栏常驻
 // ① 托盘图标常驻：左键/双击＝叫回主界面；右键＝菜单（打开主界面 / 暂停·恢复自动派工 / 退出）。
 // ② 点窗口右上角叉＝收进托盘不退出，并在右下角弹一下「已最小化，随时叫我」（气泡自动消失，不要人点确定）。
 // 现成托盘库（energye/systray）自带 GetMessage 消息泵、init 里 LockOSThread，和 Wails 的主线程循环对不上。
@@ -163,7 +163,7 @@ func startTrayImpl(a *App, iconBytes []byte) error {
 	return nil
 }
 
-// trayAvailable 托盘到底起来没有（没起来时点叉就该正常退出，别把用户的窗口藏没了）。
+// trayAvailable 托盘到底起来没有。
 func trayAvailable() bool {
 	tray.mu.Lock()
 	defer tray.mu.Unlock()
@@ -322,7 +322,7 @@ func trayRemove() {
 	procNotifyIcon.Call(nimDelete, uintptr(unsafe.Pointer(&nid)))
 }
 
-// trayBalloon 右下角「一闪提示」：气泡自己消失，不是要人点确定的对话框（用户要的就是这种）。
+// trayBalloon 右下角「一闪提示」：气泡自己消失，不是要人点确定的对话框。
 func trayBalloon(title, body string) {
 	tray.mu.Lock()
 	if tray.hwnd == 0 {

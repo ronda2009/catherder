@@ -1,4 +1,4 @@
-// 显卡闸的测试（老板 2026-10-27 批「要加」）：
+// 显卡闸的测试
 // 1) 连续两轮超阈值才算忙（单轮尖峰不算）；2) 低于阈值立刻清零；3) 读不到就不拦。
 // gpuProbe 是假读数，测试不碰真显卡。
 package engine
@@ -37,7 +37,7 @@ func fakeGpu(t *testing.T, e *Engine, pct int, ok bool) {
 // 本轮重新读数（不复用上一轮）。
 func regpu(e *Engine) { e.gpuAt = time.Now().Add(-time.Minute) }
 
-// fakeWS 塞一个空网关连接：dryRun 派发只看连接在不在、不真发消息，
+// fakeWS 塞一个空网关连接：dryRun 派发只看连接在不在、不真发消息
 // 不塞就会去连真网关（测试机没配网关地址就整轮不派，测不到闸门）。
 func fakeWS(e *Engine) { e.ws = &openclaw.Client{} }
 

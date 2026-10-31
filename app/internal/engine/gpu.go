@@ -1,6 +1,6 @@
-// 显卡忙闲探测（老板 2026-10-27 定：模型服务不报忙、但显卡还在动的时候也别派）。
-// 背景：派工台原来只看「目标窗口那一回合结束没结束」+「那个窗口用的模型服务报不报忙」，
-// 看不见外部进程或别的活占着显卡 —— 老板报的「绘图员h 被误判闲置」就是这么来的。
+// 显卡忙闲探测。
+// 背景：派工台原来只看「目标窗口那一回合结束没结束」+「那个窗口用的模型服务报不报忙」
+// 看不见外部进程或别的活占着显卡 —— 「绘图员h 被误判闲置」就是这么来的。
 package engine
 
 import (
@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// gpuHotRounds 连续几轮超过阈值才算忙（老板定的：单轮毛刺不算，免得偶发占用把派发卡住）。
+// gpuHotRounds 连续几轮超过阈值才算忙。
 const gpuHotRounds = 2
 
 // gpuProbe 是「读一次显卡利用率」这件事本身；测试里换成假读数，不去动真显卡。
@@ -51,7 +51,7 @@ func (e *Engine) gpuLimit() int {
 	return v
 }
 
-// readGpuPercent 平台相关（gpu_windows.go / gpu_other.go）：
+// readGpuPercent 平台相关（gpu_windows.go / gpu_other.go）
 // Windows 走性能计数器（厂商中立，NVIDIA/AMD/Intel 都有），读不到再退回 nvidia-smi；
 // 其它系统走 nvidia-smi。
 

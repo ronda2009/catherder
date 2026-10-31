@@ -31,7 +31,7 @@ type Engine struct {
 	ws        *openclaw.Client
 	notifyRef string
 	out       func(string)
-	// 显卡忙闲（老板 2026-10-27）：连续几轮超阈值才算忙，所以要在两轮之间记住读数。
+	// 显卡忙闲：连续几轮超阈值才算忙，所以要在两轮之间记住读数。
 	gpuAt    time.Time
 	gpuPct   int
 	gpuHot   int
@@ -145,7 +145,7 @@ type WindowInfo struct {
 }
 
 // orderWindows 定「固定顺序」：置顶优先 → 建窗时间（早的在前）→ 键名。
-// 不用 updated_at 排：那个字段每有动静（包括勾选、刷新、派活）就变，
+// 不用 updated_at 排：那个字段每有动静（包括勾选、刷新、派活）就变
 // 列表就会上下串行。
 // 建窗时间和键名都不随活动变 → 只要窗口没新建/删除，位置就钉死。
 // 置顶跟 OpenClaw 控制界面一致：用户在那边置顶了，这边也跟着排最前。
@@ -199,7 +199,7 @@ type ConversationInfo struct {
 	Kind   string `json:"kind"`
 }
 
-// ListConversations 向网关要一份会话清单（可按通道筛）。连不上/查不到就报错，
+// ListConversations 向网关要一份会话清单（可按通道筛）。连不上/查不到就报错
 // 由界面提示用户（搜不到怎么提示：界面里给「没查到，可继续手填」）。
 func (e *Engine) ListConversations(channel string) ([]ConversationInfo, error) {
 	ws, err := e.ensureWS()
@@ -430,8 +430,8 @@ func (e *Engine) dispatch(wins map[string]openclaw.Window, included map[string]b
 			busyGate = true
 		}
 	}
-	// 显卡忙不忙（老板 2026-10-27）：服务自己没报忙、但显卡还在动的时候也别派。
-	// 老板报的「绘图员h 被误判闲置」就是这种：别的活占着显卡，服务端口却不报忙。
+	// 显卡忙不忙：服务自己没报忙、但显卡还在动的时候也别派。
+	// 「绘图员h 被误判闲置」就是这种：别的活占着显卡，服务端口却不报忙。
 	var gpuBlock string
 	if e.flagOn("gate_gpu", true) {
 		if busy, known, why := e.gpuBusy(); known && busy {
@@ -443,7 +443,7 @@ func (e *Engine) dispatch(wins map[string]openclaw.Window, included map[string]b
 	if err != nil {
 		return err
 	}
-	blocked := "" // 排队却没派出去的原因（用户 2026-10-25 问「飞Q 为何等了二十几分钟」，原来日志里看不出来）
+	blocked := "" // 排队却没派出去的原因
 	for _, t := range q {
 		if live >= e.capWindows() {
 			blocked = fmt.Sprintf("同时已派满 %d 个窗口", e.capWindows())
@@ -455,7 +455,7 @@ func (e *Engine) dispatch(wins map[string]openclaw.Window, included map[string]b
 			break
 		}
 		if t.State == "editing" {
-			// 正在改：先不派，后面的任务接着派（老板 2026-10-27：改的时候别被派走，也别卡住后面）。
+			// 正在改：先不派，后面的任务接着派。
 			blocked = "有一条正在就地修改，先跳过它"
 			continue
 		}
@@ -622,7 +622,7 @@ func (e *Engine) reconnect() (*openclaw.Client, error) {
 	return c, nil
 }
 
-// resolveNotifyRef 查通道地址。连接被掉时报的是“连接被中断”而不是“找不到通道”，
+// resolveNotifyRef 查通道地址。连接被掉时报的是“连接被中断”而不是“找不到通道”
 // 不重连就会把整条通知丢掉，所以查失败先重连一次再查。
 func (e *Engine) resolveNotifyRef(ws *openclaw.Client, ch string) (*openclaw.Client, string, error) {
 	if e.notifyRef != "" {
@@ -786,7 +786,7 @@ func busyAt(hostport string) (bool, bool) {
 	return *s.Busy || q > 0, true
 }
 
-// providerAlive 只判本地服务商端口通不通；云端判不了（交给用户，）。
+// providerAlive 只判本地服务商端口通不通；云端判不了。
 func (e *Engine) providerAlive(provider string) (alive bool, known bool) {
 	if provider == "" {
 		return false, false

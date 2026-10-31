@@ -1,4 +1,4 @@
-// spike5: 转发通道的最后一环 —— conversations.send 要 agentId + conversationRef，
+// spike5: 转发通道的最后一环 —— conversations.send 要 agentId + conversationRef
 // 实测 conversations.list 能不能拿到用户私聊的 ref（拿不到就得回退 chat.send 方案）。
 // 只读探针：list 不发消息；send 用坏 ref 验证参数形状，不打扰用户。
 package main

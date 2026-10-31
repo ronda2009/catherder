@@ -1,9 +1,9 @@
 // 托盘探针（只读 + 模拟鼠标，不改数据）：
 //
-//	find   判「只收消息的托盘窗」在不在（排除 PowerShell P/Invoke 的假阴性）
-//	state  看主窗（wailsWindow）可见性
-//	click  给托盘图标发一次「左键抬起」→ 应叫回主界面
-//	close  给主窗发 WM_CLOSE（模拟点右上角叉）→ 应藏进托盘不退出
+// find 判「只收消息的托盘窗」在不在（排除 PowerShell P/Invoke 的假阴性）
+// state 看主窗（wailsWindow）可见性
+// click 给托盘图标发一次「左键抬起」→ 应叫回主界面
+// close 给主窗发 WM_CLOSE（模拟点右上角叉）→ 应藏进托盘不退出
 package main
 
 import (
@@ -114,7 +114,7 @@ func main() {
 
 	case "icon":
 		// 直接验 Wails 取图标那条路：LoadIcon(模块, IDI_APPLICATION)。
-		// PNG 帧的 .ico 会被它判失败 → 任务栏/窗口图标变「出错」样（用户 2026-10-24 反馈）。
+		// PNG 帧的 .ico 会被它判失败 → 任务栏/窗口图标变「出错」样。
 		// 用法: trayprobe icon <exe路径>（不给路径就查探针自己）
 		kernel32 := syscall.NewLazyDLL("kernel32.dll")
 		getMod := kernel32.NewProc("GetModuleHandleW")
@@ -227,7 +227,7 @@ func main() {
 		fmt.Println("已发 WM_SETICON")
 
 	case "geticon":
-		// 问主窗要它现在挂的图标（WM_GETICON）：句柄 0 ＝ 没挂我们自己的，
+		// 问主窗要它现在挂的图标（WM_GETICON）：句柄 0 ＝ 没挂我们自己的
 		// 那任务栏/标题栏显示的就是系统通用图标（用户看到的「像出错了那种」）。
 		m := mainWnd()
 		if m == 0 {

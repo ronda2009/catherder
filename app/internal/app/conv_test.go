@@ -1,4 +1,4 @@
-// 收件地址名单的实测（用户 2026-10-25：点「刷新地址」没出来东西、切通道下面也不变）。
+// 收件地址名单的实测。
 // 连真网关跑一次 conversations.list，把结果打进测试日志；连不上就跳过（不拖垮离线测试）。
 // 跑法：go test -count=1 -run TestListConversationsLive -v ./internal/app
 package app

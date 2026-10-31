@@ -249,7 +249,7 @@ func TestTickShutdownArmsAndDisarms(t *testing.T) {
 	}
 }
 
-// 重启后不该继续挂着上次落盘的关机准备（老板 2026-10-28 早上：开机自动开软件，倒计时还挂着）。
+// 重启后不该继续挂着上次落盘的关机准备。
 func TestResetArmAfterBoot(t *testing.T) {
 	e := newTestEngine(t)
 	e.st.SetSetting("notify_channel", "")
