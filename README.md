@@ -19,7 +19,7 @@ Foreman replaces "a person watching and waiting" with "a queue":
 - Completion is decided by the program; results are forwarded to the chat channel automatically.
 - The user reviews results on a phone, then dispatches the next round.
 
-Local model time stays fully used, and nobody has to sit at the machine.
+Local model time stays fully used, and nobody has to sit at the machine: dispatch a round, let the queue run, review the results on a phone, dispatch the next round. That is semi-unattended work on a local model.
 
 ![Dispatch page (Chinese)](media/screenshots/queue-zh.png)
 
@@ -135,6 +135,6 @@ root .md files  design, interface measurements, milestone acceptance, term list,
 - One model service runs one task at a time. Parallel work needs several service instances.
 - Language switching covers interface text only; content from OpenClaw is not translated.
 
-## 8. Licence
+## 8. License
 
 MIT. See LICENSE.
