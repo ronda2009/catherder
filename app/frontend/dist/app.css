@@ -1,0 +1,286 @@
+/* 派工台样式：深色、卡片式、一次做像样（用户要求 M2 不做动画）。 */
+* { box-sizing: border-box; }
+:root {
+  --bg: #14171c;
+  --panel: #1c2027;
+  --panel2: #232833;
+  --line: #2e3440;
+  --fg: #e6e9ef;
+  --dim: #98a2b3;
+  --ok: #4caf7d;
+  --warn: #d9a441;
+  --bad: #d9534f;
+  --accent: #4c8dff;
+}
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg); color: var(--fg);
+  font: 14px/1.6 "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+}
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+/* 顶栏 */
+.top {
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  padding: 10px 18px; background: var(--panel); border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.logo { font-size: 40px; line-height: 1; }
+/* 小猫头尺寸按量像素定：黄帽上沿要与「工头派工台」文字上沿持平或略高，
+   下沿不往下动 → 用 vertical-align:top 让图往上长，而不是上下各长一半。 */
+.logo img { vertical-align: top; image-rendering: auto; display: block; }
+.brand-name { font-size: 18px; font-weight: 700; }
+/* 小工厂（带烟囱）跟在大字后面、同一排，小字在它下面。 */
+.brand-factory { font-size: 22px; margin-left: 10px; vertical-align: -2px; }
+.brand-sub { font-size: 11px; color: var(--dim); }
+/* 徽章自己占一整行（flex:1 1 100%）：之前与品牌、标签页挤在同一行，
+   窗口不够宽时最右边的徽章被裁掉、标签页还会整个没了（实测踩过，用户 2026-10-25）。
+   min-width:0 保留：不给的话这一栏最小宽度等于所有徽章之和，挤不下也不换行。
+   靠右排列（用户 2026-10-25：全挤在左边、右边空着不美观）。 */
+.statusbar { display: flex; gap: 8px; flex-wrap: wrap; flex: 1 1 100%; min-width: 0; justify-content: flex-end; }
+/* 顶栏徽章：不许被挤成「…」。
+   真挤不下就整行换到下一行，也不截字。 */
+.chip {
+  padding: 3px 10px; border-radius: 999px; font-size: 12px;
+  white-space: nowrap; flex: 0 0 auto;
+  background: var(--panel2); border: 1px solid var(--line); color: var(--dim);
+}
+.chip.ok { color: var(--ok); border-color: #2c5c44; }
+.chip.warn { color: var(--warn); border-color: #5c4a2c; }
+.chip.bad { color: var(--bad); border-color: #5c2c2c; }
+/* 标签页靠右。
+   margin-left:auto 把标签页推到行尾；窗口太窄时跟着整行换行，不会没。 */
+.tabs { display: flex; gap: 4px; margin-left: auto; flex: 0 0 auto; }
+.tab {
+  padding: 7px 16px; border: 1px solid var(--line); background: transparent;
+  color: var(--dim); border-radius: 8px 8px 0 0; cursor: pointer; font-size: 14px;
+}
+.tab.active { background: var(--panel2); color: var(--fg); border-bottom-color: var(--accent); }
+
+/* 主体 */
+main { flex: 1; overflow: auto; padding: 16px 18px; }
+.page { display: none; }
+.page.active { display: block; }
+.card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px 16px; margin-bottom: 14px;
+}
+.card-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.card-head h2 { margin: 0; font-size: 16px; }
+/* 分区标题跟着状态色走 */
+.card-head h2.warn-t { color: var(--warn); }
+.card-head h2.ok-t { color: var(--ok); }
+.hint { font-size: 12px; color: var(--dim); }
+.sub { display: block; font-size: 11px; color: var(--dim); font-weight: normal; }
+
+/* 新建任务区 */
+.composer { display: flex; flex-direction: column; gap: 8px; }
+select, input[type=text], input[type=number], textarea {
+  background: var(--panel2); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 8px 10px; font: inherit;
+}
+textarea { resize: vertical; min-height: 90px; }
+select:focus, textarea:focus, input:focus { outline: 1px solid var(--accent); }
+.composer-bar { display: flex; align-items: center; gap: 12px; }
+button {
+  background: var(--panel2); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 8px 16px; cursor: pointer; font: inherit;
+}
+button:hover { border-color: var(--accent); }
+button.primary { background: #1f3a63; border-color: #2f5a9c; }
+button.danger:hover { border-color: var(--bad); color: var(--bad); }
+
+/* 任务卡 */
+.list { display: flex; flex-direction: column; gap: 8px; }
+/* 任务卡片：抬头行 / 内容 / 底部按钮行，单列流式排（不用右侧绝对列，
+   免得长内容把按钮顶出卡片，也方便截图自查）。 */
+.task {
+  display: flex; flex-direction: column; gap: 6px;
+  background: var(--panel2); border: 1px solid var(--line); border-left: 3px solid var(--accent);
+  border-radius: 8px; padding: 10px 12px;
+}
+.task > *, .task .head, .task .who { min-width: 0; }
+.task.dispatched { border-left-color: var(--warn); }
+.task.done { border-left-color: var(--ok); }
+.task.error { border-left-color: var(--bad); }
+/* 队列里就地编辑的卡片：左边标黄，输入框占满卡片宽 */
+.task.editing { border-left-color: var(--warn); }
+.task.editing select, .task.editing textarea { width: 100%; }
+.task.editing textarea { min-height: 140px; }
+.task .who { font-size: 12px; color: var(--dim); }
+/* 任务编号在排队/已派发卡片上直接露出来 */
+.task .who .tid { color: var(--fg); font-weight: 600; margin-right: 4px; }
+.task .body { white-space: pre-wrap; word-break: break-word; grid-column: 1 / -1; }
+/* 已派发的卡片：内容先只显 1 行，点一下展开，几秒后自动收回 */
+.task .body.clip { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+.task .body.open { display: block; -webkit-line-clamp: unset; overflow: visible; }
+.task .acts {
+  display: flex; gap: 6px; align-items: center;
+  border-top: 1px solid var(--line); padding-top: 7px; margin-top: 2px;
+}
+.task .acts button { padding: 3px 12px; font-size: 12px; white-space: nowrap; }
+.task .acts .spacer { flex: 1; }
+.task .acts .stamp { font-size: 11px; color: var(--dim); }
+.tag { font-size: 11px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--dim); }
+/* 已完成＝绿色实心一点，跟排队（蓝）/执行（橙）/异常（红）区分开 */
+.tag.ok { color: var(--ok); border-color: #2c5c44; background: #12261d; }
+.tag.warn { color: var(--warn); }
+.tag.bad { color: var(--bad); }
+.empty { color: var(--dim); font-size: 13px; padding: 8px 2px; }
+
+/* 窗口行：三列（勾选 / 信息 / 状态）。模型与时间放进第二行的副信息，
+   不再各占一列 —— 列太多会把长内容顶出窗口（实测踩过两次）。 */
+.win {
+  display: grid; grid-template-columns: 20px minmax(0, 1fr) 76px; gap: 12px; align-items: center;
+  background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px;
+}
+/* 勾选框对齐到窗口名那一行（信息块有三行，居中会让勾子跑到第三行高度，看着像没勾）。 */
+.win input[type=checkbox] { align-self: start; margin-top: 3px; width: 15px; height: 15px; }
+.win > * { min-width: 0; }
+.win.off { opacity: .55; }
+.win .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.win .key { font-size: 11px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.win .meta { font-size: 11px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.win .meta .off { color: var(--bad); }
+.win .tag { text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+
+/* 日志 */
+.log {
+  margin: 0; max-height: 60vh; overflow: auto; white-space: pre-wrap; word-break: break-word;
+  font: 12px/1.7 Consolas, "Courier New", monospace; color: #c7d0dd;
+}
+
+/* 设置 */
+.form { display: flex; flex-direction: column; gap: 10px; max-width: 680px; }
+.field { display: grid; grid-template-columns: 150px 1fr; gap: 12px; align-items: center; }
+.field .lab { font-size: 13px; color: var(--fg); }
+.field .ctl { display: flex; align-items: center; gap: 8px; }
+.field input[type=number] { width: 110px; }
+.field input[type=text], .field select { width: 100%; max-width: 340px; }
+/* 收件人那一行是「下拉 + 刷新按钮」：下拉可缩、按钮不换行，免得被挤没 */
+.field .ctl select { flex: 1 1 auto; min-width: 0; }
+.field .ctl button { flex: 0 0 auto; white-space: nowrap; }
+.unit { font-size: 13px; color: var(--dim); }
+.note { font-size: 11px; color: var(--dim); margin: -4px 0 2px 162px; }
+.form .check { flex-direction: row; align-items: center; gap: 8px; font-size: 13px; }
+/* 设置页底排：按钮、下拉、文字同一高度同一字号，不再大小不一 */
+.form-bar { display: flex; align-items: center; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
+.form-bar button, .form-bar select { height: 32px; padding: 0 14px; font-size: 13px; }
+.form-bar select { min-width: 132px; }
+.form-bar .hint { font-size: 12px; }
+.form-bar .bar-lab { color: var(--dim); }
+
+/* 全局横幅：停下来等处理 / 准备关机。不弹窗，常驻顶部。 */
+.banner {
+  margin: 0 0 14px; padding: 10px 14px; border-radius: 8px; font-size: 13px;
+  border: 1px solid var(--line); background: var(--panel2); color: var(--fg);
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.banner.hidden { display: none; }
+/* 英文界面下的「OpenClaw 内容不翻译」提示条：比 banner 淡，不抢视线。 */
+.lang-note { border-color: #2c3a52; background: #1a2230; color: #9db4d0; font-size: 12px; }
+.lang-note.hidden { display: none; }
+.banner.bad { border-color: #5c2c2c; background: #2a1e1e; color: #f0c9c7; }
+.banner.warn { border-color: #5c4a2c; background: #2a2418; color: #f0dcb8; }
+.banner button { padding: 3px 12px; font-size: 12px; }
+.banner .grow { flex: 1; }
+
+/* 同模型并发确认弹窗 */
+.modal {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, .55);
+  display: flex; align-items: center; justify-content: center; z-index: 50;
+}
+.modal.hidden { display: none; }
+.modal-box {
+  width: min(560px, 92vw); background: var(--panel); border: 1px solid var(--line);
+  border-radius: 10px; padding: 18px 20px;
+}
+.modal-title { font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+.modal-text { font-size: 13px; color: var(--fg); margin-bottom: 12px; white-space: pre-wrap; word-break: break-word; }
+/* 弹窗里的提示：默认每次都提醒，要关去设置页改。 */
+.modal-hint { font-size: 12px; color: var(--dim); line-height: 1.5; margin-top: 10px; }
+.modal .check { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.modal-mode { margin: 8px 0 0; width: 180px; }
+.modal-bar { display: flex; gap: 10px; margin-top: 14px; }
+
+/* 异常任务卡：把失败原因显出来 */
+.task .why { font-size: 12px; color: var(--bad); white-space: pre-wrap; word-break: break-word; }
+
+/* 底栏 */
+.bottom {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 18px; background: var(--panel); border-top: 1px solid var(--line);
+}
+.bottom .hint { flex: 1; }
+
+/* 滚动条改深色。 */
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: #39414f; border-radius: 7px; border: 3px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: #4a5566; }
+::-webkit-scrollbar-corner { background: var(--bg); }
+
+/* ---------- 截图与标注 ---------- */
+.shot { position: fixed; inset: 0; z-index: 200; background: #000; overflow: hidden; }
+.shot.hidden { display: none; }
+#shot-canvas { display: block; cursor: crosshair; }
+/* 工具栏跟着选区浮动（微信那样），两行：上行只放提示，下行工具+粗细+颜色，最右侧是撤销/重做/清空/另存为/完成/取消 */
+.shot-bar { position: fixed; z-index: 73; display: flex; flex-direction: column; gap: 6px; max-width: min(760px, calc(100vw - 16px)); padding: 8px 10px; background: rgba(20,23,28,.94); border: 1px solid rgba(255,255,255,.28); border-radius: 10px; box-shadow: 0 8px 26px rgba(0,0,0,.55); }
+.shot-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+/* 第二行最右侧那一组：靠右排，不把工具挤成一堆 */
+.shot-actions { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+/* 还没框选区时先沉在屏幕底边居中，选区一定就跳过去 */
+.shot-bar.bar-bottom { left: 50%; transform: translateX(-50%); bottom: 12px; top: auto !important; }
+.shot-tip { font-size: 12px; color: var(--fg); flex: 1 1 200px; min-width: 0; }
+.shot-sep { width: 1px; height: 18px; background: rgba(255,255,255,.25); margin: 0 2px; }
+.shot-tool, .shot-bar button { padding: 5px 10px; font-size: 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel2); color: var(--fg); cursor: pointer; white-space: nowrap; }
+.shot-tool.active { border-color: var(--accent); color: #fff; }
+.shot-bar button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.shot-bar button:disabled { opacity: .45; cursor: default; }
+.shot-colors { display: inline-flex; gap: 5px; margin: 0 4px; }
+/* 线宽三挡（细/中/粗）与颜色块同一排 */
+.shot-sizes { display: inline-flex; gap: 4px; margin: 0 4px; }
+.shot-size { padding: 6px 9px; }
+.shot-size.active { border-color: var(--accent); color: #fff; }
+.shot-color { width: 20px; height: 20px; border-radius: 50%; display: inline-block; border: 2px solid transparent; cursor: pointer; }
+.shot-color.hidden { display: none; }
+/* 选中环要深浅双环：原来只一圈白环，在白块和近白色块上根本看不见 → 老板看不出选的哪个色，「看着都是白」 */
+.shot-color.active { border-color: #1b1f27; box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(0,0,0,.5); }
+/* 打字框：z-index 必顶高于画布与工具栏，否则会被截图层抢焦点（写不上字的真因） */
+.shot-text { position: fixed; z-index: 78; min-width: 180px; background: rgba(0,0,0,.55); border: 1px solid var(--accent); border-radius: 6px; padding: 4px 6px; font-size: 18px; font-family: inherit; color: #fff; outline: none; resize: both; caret-color: #fff; cursor: text; }
+/* 光标：文字=文本竖线，取色/花圈/椭圆/方形=细十字。马赛克的圆圈由 shot.js 按「细/中/粗」现给（写死一个大小就看不出粗细变了） */
+#shot-canvas.cur-text { cursor: text; }
+#shot-canvas.cur-pick { cursor: crosshair; }
+#shot-canvas.cur-draw { cursor: crosshair; }
+.shot-note { font-size: 12px; color: var(--dim); margin-top: 8px; }
+
+/* 取色器小卡片（照微信：坐标 + 色值 + 按 Ctrl+C 复制） */
+.shot-pick { position: fixed; z-index: 71; min-width: 150px; padding: 8px 10px; background: rgba(20,23,28,.94); border: 1px solid var(--line); border-radius: 6px; color: #e6e9ef; font-size: 12px; line-height: 1.7; pointer-events: none; }
+.shot-pick i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--line); vertical-align: -2px; margin-right: 5px; }
+.shot-pick .k { color: var(--dim); }
+
+/* 待发附件：图片显缩略图，文件显图标+名字，每个都能单独拿掉 */
+.pending-files { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.pending-files.hidden { display: none; }
+.pend { position: relative; display: flex; align-items: center; gap: 6px; padding: 4px 26px 4px 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel2); font-size: 12px; max-width: 240px; }
+.pend img { width: 56px; height: 56px; object-fit: cover; border-radius: 4px; cursor: zoom-in; display: block; }
+.pend .fi { width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--dim); background: #2b313d; border-radius: 4px; }
+.pend .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 130px; }
+.pend .x { position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; padding: 0; border-radius: 50%; border: 1px solid var(--line); background: #30363f; color: #e6e9ef; font-size: 12px; line-height: 18px; cursor: pointer; }
+.pend .x:hover { background: #b3261e; color: #fff; }
+
+/* 拖文件进来时输入区亮一下（Wails 靠这个 CSS 属性认出可放区） */
+.composer { --wails-drop-target: drop; }
+.composer.wails-drag-over, .composer.dropping { outline: 2px dashed var(--accent); outline-offset: 4px; border-radius: 8px; }
+
+/* 队列卡片里的附件 */
+.task .att { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.task .att img { width: 64px; height: 64px; object-fit: cover; border-radius: 4px; cursor: zoom-in; display: block; border: 1px solid var(--line); }
+.task .att .fi { width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--dim); background: var(--panel2); border: 1px solid var(--line); border-radius: 4px; }
+
+/* 点缩略图放大 */
+.lightbox { position: fixed; inset: 0; z-index: 90; background: rgba(0,0,0,.82); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+.lightbox.hidden { display: none; }
+.lightbox img { max-width: 92vw; max-height: 84vh; object-fit: contain; border-radius: 6px; }
+.lightbox-bar { display: flex; align-items: center; gap: 12px; width: 92vw; color: #e6e9ef; font-size: 13px; }
+.lightbox-bar .spacer { flex: 1; }

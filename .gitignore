@@ -1,0 +1,38 @@
+# 构建产物与开发期临时输出
+app/bin/
+*.syso
+*.exe
+*.exe~
+*.log
+*.err
+*.out
+
+# 本机数据与开发期截图（内部记录，不进发布包）
+tmp/
+media/*
+!media/screenshots/
+台账.csv
+台账备份/
+/验收-*.png
+/shot-*.png
+/tray*.png
+/tb_*.png
+/taskbar_*.png
+/preview*.png
+/pv_*.png
+/pv*.png
+/cat*.png
+/cat*.bmp
+/ico_*.png
+/lnk_*.png
+/logo_zoom.png
+/exeicon.png
+/exe-icon-32.png
+/gui-*.png
+/tmp-brand.png
+
+# 编辑器与系统
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
