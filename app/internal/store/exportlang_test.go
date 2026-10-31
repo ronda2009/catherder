@@ -15,7 +15,7 @@ func TestExportCSVLang(t *testing.T) {
 		t.Fatalf("开测试库失败: %v", err)
 	}
 	defer st.Close()
-	id1, _ := st.AddTask("任务正文，带逗号", "w-a", "升级助手S")
+	id1, _ := st.AddTask("任务正文，带逗号", "w-a", "窗口A")
 	if err := st.MarkError(id1, "模型服务不通"); err != nil {
 		t.Fatalf("标异常失败: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestExportCSVLang(t *testing.T) {
 	if !strings.Contains(s2, "任务正文，带逗号") {
 		t.Errorf("任务正文被改了: %s", firstLine(s2))
 	}
-	if !strings.Contains(s2, "升级助手S") {
+	if !strings.Contains(s2, "窗口A") {
 		t.Errorf("窗口名被改了: %s", firstLine(s2))
 	}
 	if !strings.Contains(s2, "模型服务不通") {

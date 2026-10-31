@@ -239,7 +239,7 @@ func (e *Engine) ListConversations(channel string) ([]ConversationInfo, error) {
 		seen[tg] = true
 		lb, _ := m["label"].(string)
 		kd, _ := m["kind"].(string)
-		// 网关给的标签带通道前缀（如「feishu:g-墨云」），去掉前缀与 g-/d- 才好看。
+		// 网关给的标签带通道前缀（如「feishu:g-窗口名」），去掉前缀与 g-/d- 才好看。
 		if base := strings.TrimPrefix(lb, ch+":"); base != lb {
 			lb = strings.TrimPrefix(strings.TrimPrefix(base, "g-"), "d-")
 		}
@@ -431,7 +431,7 @@ func (e *Engine) dispatch(wins map[string]openclaw.Window, included map[string]b
 		}
 	}
 	// 显卡忙不忙：服务自己没报忙、但显卡还在动的时候也别派。
-	// 「绘图员h 被误判闲置」就是这种：别的活占着显卡，服务端口却不报忙。
+	// 误判闲置的典型情形：别的活占着显卡，服务端口却不报忙。
 	var gpuBlock string
 	if e.flagOn("gate_gpu", true) {
 		if busy, known, why := e.gpuBusy(); known && busy {

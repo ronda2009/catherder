@@ -16,7 +16,7 @@ import (
 func TestListConversationsLive(t *testing.T) {
 	dir := t.TempDir()
 	cfgPath := filepath.Join(dir, "openclaw.json")
-	body, err := os.ReadFile(`C:\Users\Administrator\.openclaw\openclaw.json`)
+	body, err := os.ReadFile(openclaw.DefaultConfigPath())
 	if err != nil {
 		t.Skipf("读不到本机配置，跳过: %v", err)
 	}
