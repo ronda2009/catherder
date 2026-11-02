@@ -1,5 +1,7 @@
 # Foreman CatHerder
 
+**English** | [中文说明](README.zh-CN.md)
+
 **Dispatch and queue tool for OpenClaw windows**
 
 Sends tasks to multiple OpenClaw session windows: one global queue, dispatched in order. A task goes out only when the target window is idle, the model service is idle and the GPU is idle. Queuing, dispatch, completion detection, result forwarding and automatic shutdown run without calling the model, without occupying a chat slot, and without spending tokens.
