@@ -249,7 +249,7 @@ func TestTickShutdownArmsAndDisarms(t *testing.T) {
 	}
 }
 
-// 重启后不该继续挂着上次落盘的关机准备。
+// 重启后：落盘的关机准备要作废，而且开关也自动关掉（刚开机条件必满足，不关就会再下一次关机）。
 func TestResetArmAfterBoot(t *testing.T) {
 	e := newTestEngine(t)
 	e.st.SetSetting("notify_channel", "")
@@ -262,8 +262,45 @@ func TestResetArmAfterBoot(t *testing.T) {
 	if e.armedAt() != 0 {
 		t.Error("重启后该把挂着的关机准备作废")
 	}
-	if e.ShutdownState() != "等条件满足" {
-		t.Error("作废后界面该回到「等条件满足」，实际：" + e.ShutdownState())
+	if v, _ := e.st.GetSetting("auto_shutdown"); v != "0" {
+		t.Error("重启后该把自动关机开关存成 0，实际：" + v)
+	}
+	if e.ShutdownState() != "" {
+		t.Error("重启后界面不该再显示关机横幅，实际：" + e.ShutdownState())
+	}
+	// 开关本来没勾时重启：不该报错也不该凭空写入设置（保持没勾）。
+	e2 := newTestEngine(t)
+	e2.ResetArmAfterBoot()
+	if v, _ := e2.st.GetSetting("auto_shutdown"); v == "1" {
+		t.Error("没勾选的开关重启后不该变成勾选")
+	}
+}
+
+// 「取消关机」按钮：撤掉这次待关机，同时把开关取消并保存（横幅随即消失）。
+func TestCancelShutdownTurnsOffSwitch(t *testing.T) {
+	e := newTestEngine(t)
+	e.st.SetSetting("notify_channel", "")
+	e.st.SetSetting("auto_shutdown", "1")
+	// 没待关机时点取消：开关也要关掉，横幅该空
+	e.CancelShutdown()
+	if v, _ := e.st.GetSetting("auto_shutdown"); v != "0" {
+		t.Error("点取消该把自动关机开关存成 0，实际：" + v)
+	}
+	if s := e.ShutdownState(); s != "" {
+		t.Error("开关关了界面不该再有横幅，实际：" + s)
+	}
+	// 重新勾上并武装后点取消：待关机与开关一起没
+	e.st.SetSetting("auto_shutdown", "1")
+	e.setArmed(time.Now().UnixMilli())
+	e.CancelShutdown()
+	if e.armedAt() != 0 {
+		t.Error("点取消该撤掉待关机")
+	}
+	if v, _ := e.st.GetSetting("auto_shutdown"); v != "0" {
+		t.Error("点取消该同时取消勾选，实际：" + v)
+	}
+	if s := e.ShutdownState(); s != "" {
+		t.Error("取消后界面不该再有横幅，实际：" + s)
 	}
 }
 

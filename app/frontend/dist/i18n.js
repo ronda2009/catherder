@@ -405,6 +405,8 @@ const DICT = {
   '自动关机已撤销：': 'Auto shutdown cancelled: ',
   '不在设定的关机时段': 'outside the configured shutdown window',
   '程序重启，上次挂着的关机准备作废': 'the program restarted, so the pending shutdown prep was dropped',
+  '启动时自动取消自动关机（需要请在设置里重新勾选）': 'Auto shutdown was turned off at startup (re-enable it in Settings if needed)',
+  '启动时自动取消自动关机': 'Auto shutdown was turned off at startup',
   '等条件满足': 'waiting for conditions',
   '用户在界面点击取消': 'cancelled from the interface',
   '仍有任务未完成': 'tasks are still unfinished',

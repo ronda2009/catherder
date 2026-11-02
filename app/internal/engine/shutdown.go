@@ -91,21 +91,29 @@ func (e *Engine) tickShutdown(included map[string]bool, wins map[string]openclaw
 	}
 }
 
-// CancelShutdown 给界面「取消关机」按钮用：不管条不条件，先撤了再说。
+// CancelShutdown 给界面「取消关机」按钮用：撤掉这次待关机，同时把「自动关机」的勾选取消并保存。
+// 勾选一关，ShutdownState 就返回空 → 横幅立刻消失，设置页的勾选也同步变掉。
 func (e *Engine) CancelShutdown() {
-	if e.armedAt() == 0 {
-		return
+	if e.armedAt() != 0 {
+		e.disarm("用户在界面点击取消")
 	}
-	e.disarm("用户在界面点击取消")
+	e.st.SetSetting("auto_shutdown", "0")
 }
 
-// ResetArmAfterBoot 程序启动时调一次：「准备关机」是落盘的，重启后 Windows 那边那条
-// 待关机已经随开机没了，标记还留着会让界面一开机就挂着倒计时，下一轮还会再下一次关机。
+// ResetArmAfterBoot 程序启动时调一次：开机/重启软件后，自动关机整套先取消。
+// ① 落盘的「准备关机」标记随开机已失效，留着会让界面一开机就挂倒计时。
+// ② 开关本身也取消：刚开机时队列必然是空的、窗口也必然是空闲的，条件秒满足，
+//
+//	不取消就会在开机两三分钟后再下一次关机。要用的话在设置里重新勾选。
 func (e *Engine) ResetArmAfterBoot() {
-	if e.armedAt() == 0 {
-		return
+	if e.armedAt() != 0 {
+		e.disarm("程序重启，上次挂着的关机准备作废")
 	}
-	e.disarm("程序重启，上次挂着的关机准备作废")
+	if e.flagOn("auto_shutdown", false) {
+		e.st.SetSetting("auto_shutdown", "0")
+		e.out("启动时自动取消自动关机（需要请在设置里重新勾选）")
+		e.st.Log("shutdown", "启动时自动取消自动关机")
+	}
 }
 
 // disarm 撤销关机：已发过 shutdown 就补一条 /a 撤销。
