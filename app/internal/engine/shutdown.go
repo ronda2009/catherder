@@ -157,7 +157,7 @@ func (e *Engine) shutdownReady(included map[string]bool, wins map[string]opencla
 		return false, "未勾选任何可派工窗口"
 	}
 	if e.flagOn("gate_service", true) {
-		if busy, known := e.serviceBusy(); known && busy {
+		if a := e.serviceBusy(); a.Known && a.Busy {
 			return false, "模型服务还在忙"
 		}
 	}

@@ -522,10 +522,10 @@ func cmdStatus(cfg *openclaw.Config, st *store.Store, eng *engine.Engine) {
 		}
 		fmt.Printf("  %-20s %s\n", kv[0], v)
 	}
-	if busy, known := eng.ServiceBusyForStatus(); known {
-		fmt.Println("模型服务: 正忙 =", busy)
+	if d := eng.ServiceBusyDetail(); d.Known {
+		fmt.Println("模型服务:", d.Kind, "正忙 =", d.Busy, "——", d.Why)
 	} else {
-		fmt.Println("模型服务: 这台机器探不到状态接口，只看窗口状态")
+		fmt.Println("模型服务: 这个地址上 /status、/slots、/api/ps、/running 都没答，只看窗口状态")
 	}
 	// 显卡闸（gate_gpu）：探不到（老驱动 / 没显卡计数器 / 不是相关显卡）就说探不到，不拦派发。
 	if busy, known, why := eng.GpuBusyForStatus(); known {

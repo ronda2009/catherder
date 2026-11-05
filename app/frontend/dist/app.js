@@ -97,6 +97,10 @@ async function refreshOverview() {
     // 排队 / 执行 / 完成 / 同时 N 窗 / 每 N 秒 / 距下次 N 秒。行话不出现。
     chip($('chip-run'), o.running ? tr('派工中 每 ') + o.interval + tr(' 秒') : tr('已暂停'), o.running ? 'ok' : 'warn');
     chip($('chip-service'), serviceShort(o.service), o.service === '模型服务空闲' ? 'ok' : (o.service === '模型服务繁忙' ? 'warn' : ''));
+    // 悬停说清「认成了哪种服务、凭什么这么说」——光一个「服务空闲」看不出它到底认了什么。
+    // serviceWhy 是 Go 传来的句子，要过 tr() 才会变英文（不包就会被当数据原样留下）。
+    if (o.serviceKind) $('chip-service').title = tr('认成：') + o.serviceKind + tr('；依据：') + tr(o.serviceWhy);
+    else $('chip-service').title = tr('依据：') + (tr(o.serviceWhy) || tr('探不到'));
     nextTickSec = o.running ? o.nextSec : -1;
     renderNextChip(o.running, o.nextSec, o.interval);
     chip($('chip-par'), tr('同时 ') + o.parallel + tr(' 窗'), '');
@@ -794,6 +798,7 @@ async function loadSettings() {
     $('s-gate').checked = !!s.gateService;
     $('s-gate-gpu').checked = !!s.gateGpu;
     $('s-gpu-pct').value = s.gpuPercent || 30;
+    $('s-status').value = s.serviceStatusUrl || '';
     $('s-auto').checked = !!s.autoInclude;
     $('s-tray').checked = !!s.trayOnClose;
     $('s-shutdown').checked = !!s.autoShutdown;
@@ -920,6 +925,7 @@ $('btn-save').addEventListener('click', async () => {
       gateService: $('s-gate').checked,
       gateGpu: $('s-gate-gpu').checked,
       gpuPercent: Number($('s-gpu-pct').value) || 30,
+      serviceStatusUrl: $('s-status').value.trim(),
       autoInclude: $('s-auto').checked,
       trayOnClose: $('s-tray').checked,
       autoShutdown: $('s-shutdown').checked,

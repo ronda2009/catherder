@@ -157,7 +157,11 @@
             <span class="ctl"><input id="s-target" type="text" placeholder="从上面选会自动填到这里；名单里没有时也可自己填"></span>
           </div>
           <label class="check"><input id="s-tail" type="checkbox"> 派发时在任务末尾追加完成回执要求（便于回收结果）</label>
-          <label class="check"><input id="s-gate" type="checkbox"> 模型服务繁忙时暂缓派发新任务</label>
+          <label class="check" title="自动按服务种类选问法：/status、/slots（llama.cpp）、/api/ps（ollama）、/running（llama-swap）；都问不到时只看窗口状态。"> <input id="s-gate" type="checkbox"> 模型服务繁忙时暂缓派发新任务</label>
+          <div class="field">
+            <span class="lab">服务状态地址</span>
+            <span class="ctl"><input id="s-status" type="text" placeholder="留空＝http://127.0.0.1:8080；例 http://127.0.0.1:8090、http://127.0.0.1:11434"></span>
+          </div>
           <label class="check" title="显卡利用率连续两轮超过阈值就先不派（单轮偶发尖峰不算）。服务没报忙、但显卡还在动的时候能挡住误判。"> <input id="s-gate-gpu" type="checkbox"> 显卡繁忙时暂缓派发新任务</label>
           <div class="field">
             <span class="lab">显卡利用率阈值</span>

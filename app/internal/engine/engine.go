@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"catherder/internal/openclaw"
@@ -36,10 +37,13 @@ type Engine struct {
 	gpuPct   int
 	gpuHot   int
 	gpuKnown bool
+	// 模型服务忙闲：各家接口不一样，探一次要打好几个口，所以按端口缓存（见 busy.go）。
+	busyMu    sync.Mutex
+	busyCache map[string]probeAsk
 }
 
 func New(cfg *openclaw.Config, st *store.Store, dbPath string) *Engine {
-	return &Engine{cfg: cfg, st: st, dbPath: dbPath, out: func(s string) { fmt.Println(s) }}
+	return &Engine{cfg: cfg, st: st, dbPath: dbPath, busyCache: map[string]probeAsk{}, out: func(s string) { fmt.Println(s) }}
 }
 
 func (e *Engine) SetOut(fn func(string)) { e.out = fn }
@@ -72,8 +76,15 @@ func (e *Engine) retryDelaySec() int { return e.settingInt("retry_delay_seconds"
 // DBPath 暴露给命令行版复用（避免两处各写一遍库路径）。
 func (e *Engine) DBPath() string { return e.dbPath }
 
-// ServiceBusyForStatus 给 status 命令与界面用，与内部闸门同一逻辑。
-func (e *Engine) ServiceBusyForStatus() (bool, bool) { return e.serviceBusy() }
+// ServiceBusyForStatus 给只要「忙/闲/探不到」三个值的调用方（与内部闸门同一逻辑）。
+func (e *Engine) ServiceBusyForStatus() (bool, bool) {
+	a := e.serviceBusy()
+	return a.Busy, a.Known
+}
+
+// ServiceBusyDetail 给界面与 status 命令用：除了忙不忙，还回认成了哪种服务、凭什么这么说。
+// 界面「服务」那一栏靠它让人看出「这台机器上它认的是 llama.cpp 还是 ollama 还是自家路由」。
+func (e *Engine) ServiceBusyDetail() busyAsk { return e.serviceBusy() }
 
 // GpuBusyForStatus 给 status 命令与界面用（回：忙？、读得到？、原因）。
 func (e *Engine) GpuBusyForStatus() (bool, bool, string) { return e.gpuBusy() }
@@ -426,7 +437,7 @@ func (e *Engine) dispatch(wins map[string]openclaw.Window, included map[string]b
 	// 本地模型服务忙不忙：只用来挡「用本地模型的窗口」，云端窗口不受这个判断。
 	var busyGate bool
 	if e.flagOn("gate_service", true) {
-		if busy, known := e.serviceBusy(); known && busy {
+		if a := e.serviceBusy(); a.Known && a.Busy {
 			busyGate = true
 		}
 	}
@@ -465,7 +476,7 @@ func (e *Engine) dispatch(wins map[string]openclaw.Window, included map[string]b
 			continue
 		}
 		if busyGate {
-			if busy, known := e.providerBusy(w.Provider); known && busy {
+			if a := e.providerBusy(w.Provider); a.Known && a.Busy {
 				blocked = fmt.Sprintf("窗口 %s 用的模型服务正忙，这条先排队", displayName(w))
 				continue
 			}
@@ -717,73 +728,45 @@ func (e *Engine) NotifyNow(text string) error {
 	return ws2.SendToConversation("main", ref2, text)
 }
 
-// serviceBusy 读模型服务的忙闲（按状态地址探，属可选适配器）。
-// 探不到就返回 known=false，调用方降级为只看窗口状态。
-func (e *Engine) serviceBusy() (busy bool, known bool) {
+// serviceBusy 读「状态地址」那一头的模型服务忙闲（属可选适配器）；探不到就 Known=false，调用方只看窗口。
+// 状态地址指的可能是档位切换器（自己不干推理，得先问它当前档在哪个端口），也可能直接指到推理服务。
+func (e *Engine) serviceBusy() busyAsk {
 	base, _ := e.st.GetSetting("service_status_url")
 	if base == "" {
 		base = "http://127.0.0.1:8080"
 	}
-	hostport := strings.TrimPrefix(strings.TrimPrefix(base, "http://"), "https://")
-	hostport = strings.Trim(hostport, "/")
-	if i := strings.Index(hostport, "/"); i >= 0 {
-		hostport = hostport[:i]
-	}
-	return tierBusy(hostport)
+	return e.tierBusy(trimScheme(base))
 }
 
-// providerBusy 查「某个窗口用的那个服务商」忙不忙。云端/探不到 → known=false，调用方不拦。
-// 档位切换器（状态地址默认端口）自己不干推理，先问它当前档在哪个端口，再查那个端口。
-func (e *Engine) providerBusy(provider string) (busy bool, known bool) {
+// tierBusy 查档位切换器（或任何状态地址）那一头的忙闲：能问出当前档在哪个端口就问那一档，
+// 问不出（不是切换器、或没这个口）就把这个地址本身当推理服务问。
+func (e *Engine) tierBusy(switcher string) busyAsk {
+	if switcher == "" {
+		return unknownAsk()
+	}
+	var st struct {
+		Current string         `json:"current"`
+		Tiers   map[string]int `json:"tiers"`
+	}
+	if getJSON("http://"+switcher+"/__status", &st) && st.Current != "" {
+		if p, ok := st.Tiers[st.Current]; ok {
+			return e.busyAt(fmt.Sprintf("127.0.0.1:%d", p))
+		}
+	}
+	return e.busyAt(switcher)
+}
+
+// providerBusy 查「某个窗口用的那个服务商」忙不忙。云端/探不到 → Known=false，调用方不拦。
+// 服务商地址可能直接是推理服务（llama.cpp / ollama），也可能是档位切换器（自家路由）：两种都走同一套探测。
+func (e *Engine) providerBusy(provider string) busyAsk {
 	if provider == "" {
-		return false, false
+		return unknownAsk()
 	}
 	local, hostport := e.cfg.ProviderIsLocal(provider)
 	if !local || hostport == "" {
-		return false, false
+		return unknownAsk()
 	}
-	var st struct {
-		Current string         `json:"current"`
-		Tiers   map[string]int `json:"tiers"`
-	}
-	if getJSON("http://"+hostport+"/__status", &st) && st.Current != "" {
-		if p, ok := st.Tiers[st.Current]; ok {
-			hostport = fmt.Sprintf("127.0.0.1:%d", p)
-		}
-	}
-	return busyAt(hostport)
-}
-
-// tierBusy 查档位切换器背后那一档的忙闲。
-func tierBusy(switcher string) (bool, bool) {
-	var st struct {
-		Current string         `json:"current"`
-		Tiers   map[string]int `json:"tiers"`
-	}
-	if !getJSON("http://"+switcher+"/__status", &st) || st.Current == "" {
-		return false, false
-	}
-	port, ok := st.Tiers[st.Current]
-	if !ok {
-		return false, false
-	}
-	return busyAt(fmt.Sprintf("127.0.0.1:%d", port))
-}
-
-// busyAt 查某个 主机:端口 上的推理服务忙不忙。
-func busyAt(hostport string) (bool, bool) {
-	var s struct {
-		Busy   *bool `json:"busy"`
-		Queued *int  `json:"queued"`
-	}
-	if !getJSON(fmt.Sprintf("http://%s/status", hostport), &s) || s.Busy == nil {
-		return false, false
-	}
-	q := 0
-	if s.Queued != nil {
-		q = *s.Queued
-	}
-	return *s.Busy || q > 0, true
+	return e.tierBusy(hostport)
 }
 
 // providerAlive 只判本地服务商端口通不通；云端判不了。

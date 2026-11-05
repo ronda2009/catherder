@@ -174,6 +174,26 @@ const DICT = {
   '显卡利用率连续两轮超过阈值就先不派（单轮偶发尖峰不算）。服务没报忙、但显卡还在动的时候能挡住误判。':
     'Pause new dispatches while GPU utilization stays above the threshold for two rounds in a row (a one-round spike does not count). Catches the case where the model service reports idle while the GPU is still working.',
   '显卡利用率阈值': 'GPU utilization threshold',
+  // 服务闸门：各家接口不一样，这里说清它自己会试哪几种问法，以及地址能改。
+  '自动按服务种类选问法：/status、/slots（llama.cpp）、/api/ps（ollama）、/running（llama-swap）；都问不到时只看窗口状态。':
+    'It asks each server the way that server answers: /status, /slots (llama.cpp), /api/ps (ollama), /running (llama-swap). If none of them answer, window state is used alone.',
+  '服务状态地址': 'Service status address',
+  '留空＝http://127.0.0.1:8080；例 http://127.0.0.1:8090、http://127.0.0.1:11434':
+    'Empty = http://127.0.0.1:8080; e.g. http://127.0.0.1:8090, http://127.0.0.1:11434',
+  '认成：': 'Recognized as: ',
+  '；依据：': '; basis: ',
+  '依据：': 'Basis: ',
+  '探不到': 'not detected',
+  '状态接口': 'status endpoint',
+  '状态地址上 /status、/slots、/api/ps、/running 都没答（探不到就只看窗口状态）':
+    'the status address answered none of /status, /slots, /api/ps or /running (without it, window state is used alone)',
+  // 服务「依据」里不带数字/名字的几句（带数字与模型名的进 RULES，见下面）。
+  '服务自报正在生成': 'the service reports it is generating',
+  '服务自报空闲': 'the service reports it is idle',
+  '槽全空': 'all slots are free',
+  '没有模型驻留': 'no model is loaded in memory',
+  '没挂模型': 'no model is loaded',
+  '挂着的模型空闲': 'the loaded model is idle',
   '%（连续两轮超过这个数才算忙）': '% (counts as busy only after two consecutive rounds above this)',
   '完成结果通知通道': 'Channel for result notifications',
   '留空＝不发送通知，仅记录在日志中。': 'Empty = no notification, results go to the log only.',
@@ -491,6 +511,14 @@ const RULES = [
   [/同时已派满 (\d+) 个窗口/, (m, n) => `all ${n} window slot(s) already in use`],
   [/显卡正忙（利用率 (\d+)%，连续 (\d+) 轮超过 (\d+)%）/, (m, p, n, t) => `the GPU is busy (${p}% utilization, ${n} consecutive rounds above ${t}%)`],
   [/模型服务还在忙/, () => 'the model service is still busy'],
+  // 服务「依据」短句（顶栏悬停）：数字与模型名保持原文。
+  [/服务在排队 (\d+) 条/, (m, n) => `the service has ${n} request(s) queued`],
+  [/(\d+)\/(\d+) 个槽正在生成/, (m, a, b) => `${a}/${b} slot(s) are generating`],
+  [/(\d+) 个模型驻留内存（(.+?) 等）/, (m, n, w) => `${n} model(s) loaded in memory (${keep(w)} and others)`],
+  [/模型 (\S+) 驻留内存/, (m, w) => `model ${keep(w)} is loaded in memory`],
+  [/模型 (\S+) 还没挂稳（状态 (\S+)）/, (m, w, s) => `model ${keep(w)} is not ready yet (state ${s})`],
+  [/挂着 (\d+) 个模型（(.+?) 等），问不到它们忙不忙/, (m, n, w) => `${n} model(s) are loaded (${keep(w)} and others), and the servers behind them do not answer whether they are busy`],
+  [/挂着模型 (.+?)，问不到它忙不忙/, (m, w) => `model ${keep(w)} is loaded, and the server behind it does not answer whether it is busy`],
   [/窗口 (.*?) 用的模型服务正忙，这条先排队/, (m, w) => `the model service used by window ${keep(w)} is busy, this one stays queued`],
   [/窗口 (.*?) 正忙（还有 (\d+) 条没处理完）/, (m, w, n) => `window ${keep(w)} is busy (${n} task(s) still unfinished)`],
   [/窗口 (.*?) 刚收到消息，本轮先避开/, (m, w) => `window ${keep(w)} just received input, skipped this round`],
