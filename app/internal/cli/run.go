@@ -20,7 +20,7 @@ import (
 )
 
 // Commands 给入口程序判断「这个词是命令行子命令」。
-var Commands = []string{"scan", "include", "exclude", "add", "queue", "move", "cancel",
+var Commands = []string{"scan", "include", "exclude", "add", "queue", "move", "cancel", "dismiss",
 	"errors", "retry", "confirm", "export", "tick", "run", "set", "get", "log", "notify", "status", "shot"}
 
 // IsCommand 判断 argv[0] 是不是子命令（不是就走界面）。
@@ -82,6 +82,8 @@ func Run(argv []string) {
 		cmdMove(st, args[1:])
 	case "cancel":
 		cmdCancel(st, args[1:])
+	case "dismiss":
+		cmdDismiss(st, args[1:])
 	case "errors":
 		cmdErrors(st)
 	case "retry":
@@ -125,6 +127,7 @@ func usage() {
   catherder queue                    查看队列（未派发，按提交顺序）
   catherder move <id> <到谁前面|0>    调序（0=队首）
   catherder cancel <id>              撤销未派发或标记为异常的任务
+  catherder dismiss <id>             取消一条异常任务（不再派发、也不删除，留在异常列表里）
   catherder errors                   查看标记为异常的任务（含原因）
   catherder retry <id>               将标记为异常的任务重新排队
   catherder confirm [--yes|--no]     查看待确认的并发项；--yes 仍然派发，--no 暂不派发
@@ -321,6 +324,17 @@ func cmdCancel(st *store.Store, args []string) {
 	fmt.Printf("T-%03d 已撤销\n", atoi(args[0]))
 }
 
+// cmdDismiss 把异常任务标成「已取消摆着」：不再派发、也不删除。
+func cmdDismiss(st *store.Store, args []string) {
+	if len(args) < 1 {
+		die("用法: dismiss <任务id>")
+	}
+	if err := st.Dismiss(atoi(args[0])); err != nil {
+		die("取消失败：%v", err)
+	}
+	fmt.Printf("T-%03d 已取消（不再派发，也不删除，留在异常任务里）\n", atoi(args[0]))
+}
+
 // cmdExport 导任务记录 CSV（不弹框，直接写路径或存到「文档」）。
 func cmdExport(st *store.Store, args []string) {
 	path := ""
@@ -352,9 +366,13 @@ func cmdErrors(st *store.Store) {
 		return
 	}
 	for _, t := range es {
-		fmt.Printf("T-%03d → %s\n    原因：%s\n    内容：%s\n", t.ID, t.TargetLabel, clip(oneLine(t.Note), 200), clip(oneLine(t.Body), 100))
+		tag := "异常"
+		if t.State == "dismissed" {
+			tag = "已取消（摆着）"
+		}
+		fmt.Printf("T-%03d → %s [%s]\n    原因：%s\n    内容：%s\n", t.ID, t.TargetLabel, tag, clip(oneLine(t.Note), 200), clip(oneLine(t.Body), 100))
 	}
-	fmt.Println("修复后可用 retry <id> 重新排队，或用 cancel <id> 删除。")
+	fmt.Println("修复后可用 retry <id> 重新排队，用 dismiss <id> 取消（不再派发也不删除），或 cancel <id> 删除。")
 }
 
 func cmdRetry(st *store.Store, args []string) {
@@ -522,10 +540,10 @@ func cmdStatus(cfg *openclaw.Config, st *store.Store, eng *engine.Engine) {
 		}
 		fmt.Printf("  %-20s %s\n", kv[0], v)
 	}
-	if busy, known := eng.ServiceBusyForStatus(); known {
-		fmt.Println("模型服务: 正忙 =", busy)
+	if d := eng.ServiceBusyDetail(); d.Known {
+		fmt.Println("模型服务:", d.Kind, "正忙 =", d.Busy, "——", d.Why)
 	} else {
-		fmt.Println("模型服务: 这台机器探不到状态接口，只看窗口状态")
+		fmt.Println("模型服务: 这个地址上 /status、/slots、/api/ps、/running 都没答，只看窗口状态")
 	}
 	// 显卡闸（gate_gpu）：探不到（老驱动 / 没显卡计数器 / 不是相关显卡）就说探不到，不拦派发。
 	if busy, known, why := eng.GpuBusyForStatus(); known {
@@ -538,8 +556,8 @@ func cmdStatus(cfg *openclaw.Config, st *store.Store, eng *engine.Engine) {
 		fmt.Println("显卡: 这台机器读不到利用率（系统显卡计数器不可用，nvidia-smi 也没有），不拦派发")
 	}
 	if c, err := st.Counts(); err == nil {
-		fmt.Printf("任务计数：排队=%d 执行中=%d 异常=%d 已完成=%d 已删除=%d\n",
-			c["queued"], c["dispatched"], c["error"], c["done"]+c["done_unacked"], c["canceled"])
+		fmt.Printf("任务计数：排队=%d 执行中=%d 异常=%d 已取消摆着=%d 已完成=%d 已删除=%d\n",
+			c["queued"], c["dispatched"], c["error"], c["dismissed"], c["done"]+c["done_unacked"], c["canceled"])
 	}
 	if s := eng.ShutdownState(); s != "" {
 		fmt.Println("自动关机:", s)

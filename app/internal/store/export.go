@@ -91,6 +91,8 @@ func StateText(t Task) string {
 		return etext("派发失败")
 	case "canceled":
 		return etext("已删除")
+	case "dismissed":
+		return etext("已取消（不再派发）")
 	case "editing":
 		return etext("正在修改")
 	case "paused":
@@ -121,6 +123,7 @@ var exportEN = map[string]string{
 	"排队中": "Queued", "已派发，等待完成": "Dispatched, waiting",
 	"已完成（有回执）": "Done (receipt)", "已完成（未收到回执）": "Done (no receipt)",
 	"已完成": "Done", "派发失败": "Dispatch failed", "已删除": "Deleted", "已暂停": "Paused", "正在修改": "Editing",
+	"已取消（不再派发）": "Dismissed (not dispatched)",
 }
 
 func etext(zh string) string {

@@ -316,9 +316,10 @@ func (s *Store) Counts() (map[string]int, error) {
 	return out, rows.Err()
 }
 
-// RecentErrors 取最近标异常的任务，给界面横幅与「重试这条」用。
+// RecentErrors 取待处理的异常任务（含已取消摆着的），给界面异常区与命令行 errors 用。
+// 未处理的排前面，已取消的排后面——界面要先把要管的露出来。
 func (s *Store) RecentErrors(limit int) ([]Task, error) {
-	return s.queryTasks(`WHERE state='error' ORDER BY done_at DESC LIMIT ?`, limit)
+	return s.queryTasks(`WHERE state IN ('error','dismissed') ORDER BY (state='dismissed'), done_at DESC LIMIT ?`, limit)
 }
 
 // AllTasks 给导出 CSV 用：不分状态，按时间倒序。
@@ -326,21 +327,58 @@ func (s *Store) AllTasks(limit int) ([]Task, error) {
 	return s.queryTasks(`ORDER BY id DESC LIMIT ?`, limit)
 }
 
-// RetryTask 把标异常的任务重新放回队列（用户修好模型后点「重试这条」）。
+// RetryTask 把标异常（或已取消摆着）的任务重新放回队列（用户修好模型后点「重试这条」）。
 func (s *Store) RetryTask(id int) error {
-	_, err := s.db.Exec(`UPDATE tasks SET state='queued', note='', tries=0, done_at=0, idle_since=0 WHERE id=? AND state='error'`, id)
+	_, err := s.db.Exec(`UPDATE tasks SET state='queued', note='', tries=0, done_at=0, idle_since=0 WHERE id=? AND state IN ('error','dismissed')`, id)
 	if err == nil {
 		s.logEvent(id, "retry", "重新排队")
 	}
 	return err
 }
 
+// Dismiss 把一条异常任务「取消」：不再派发、也不算删除，就摆着（state='dismissed'）。
+// 界面不再拿它弹横幅、它也不拦自动关机；库里记录与内容都留着，随时还能重试或删除。
+// 最后一条异常被取消/处理完 → 顺手清掉「已停止派发」标记，横幅当场复位（不等下一轮检查）。
+func (s *Store) Dismiss(id int) error {
+	res, err := s.db.Exec(`UPDATE tasks SET state='dismissed' WHERE id=? AND state='error'`, id)
+	if err != nil {
+		return err
+	}
+	// 没改到行（这条早就不在异常列表里）就别写日志也别清停机标记，否则库里会多一条假记录。
+	if n, _ := res.RowsAffected(); n == 0 {
+		return fmt.Errorf("T-%03d 不在异常列表里，取消不了", id)
+	}
+	s.logEvent(id, "dismiss", "已取消：不再派发，也不删除，留在异常任务里")
+	return s.clearHaltIfNoError()
+}
+
+// DismissAllErrors 横幅上的「取消」：把当前这批异常一次性都取消摆着，并复位「已停止派发」。
+func (s *Store) DismissAllErrors() error {
+	if _, err := s.db.Exec(`UPDATE tasks SET state='dismissed' WHERE state='error'`); err != nil {
+		return err
+	}
+	s.Log("dismiss", "批量取消异常任务（不再派发，也不删除）")
+	return s.clearHaltIfNoError()
+}
+
+// clearHaltIfNoError 没有待处理的异常了就把停机标记抹掉（有排队任务时引擎也会自己抹）。
+func (s *Store) clearHaltIfNoError() error {
+	var n int
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM tasks WHERE state='error'`).Scan(&n); err != nil {
+		return err
+	}
+	if n == 0 {
+		return s.ClearHalt()
+	}
+	return nil
+}
+
 // ClearHalt 异常处理完成 → 清除「全部异常」停机标记。
 func (s *Store) ClearHalt() error { return s.SetSetting("halt", "") }
 
 func (s *Store) Cancel(id int) error {
-	// 标异常的任务也得能撤（失败分诊后用户可能直接丢掉这条）；正在改的也能撤。
-	_, err := s.db.Exec(`UPDATE tasks SET state='canceled', done_at=strftime('%s','now')*1000 WHERE id=? AND state IN ('queued','error','paused','editing')`, id)
+	// 标异常（含已取消摆着）的任务也得能撤（失败分诊后用户可能直接丢掉这条）；正在改的也能撤。
+	_, err := s.db.Exec(`UPDATE tasks SET state='canceled', done_at=strftime('%s','now')*1000 WHERE id=? AND state IN ('queued','error','dismissed','paused','editing')`, id)
 	if err == nil {
 		s.logEvent(id, "cancel", "")
 	}

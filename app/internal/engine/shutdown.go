@@ -137,9 +137,8 @@ func (e *Engine) shutdownReady(included map[string]bool, wins map[string]opencla
 	if c["queued"]+c["dispatched"]+c["paused"]+c["editing"] > 0 {
 		return false, "仍有任务未完成"
 	}
-	if c["error"] > 0 {
-		return false, "还有任务标着异常，没处理"
-	}
+	// 异常任务不拦关机（老板 2026-11-06：自动关机权限大于异常提醒）。
+	// 没处理的异常第二天开机软件自启后继续弹横幅，直到点「取消」或「删除」。
 	any := false
 	for key, w := range wins {
 		if !included[key] {
@@ -157,7 +156,7 @@ func (e *Engine) shutdownReady(included map[string]bool, wins map[string]opencla
 		return false, "未勾选任何可派工窗口"
 	}
 	if e.flagOn("gate_service", true) {
-		if busy, known := e.serviceBusy(); known && busy {
+		if a := e.serviceBusy(); a.Known && a.Busy {
 			return false, "模型服务还在忙"
 		}
 	}

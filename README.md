@@ -71,20 +71,21 @@ Local model time stays fully used, and nobody has to sit at the machine: dispatc
 **Automatic shutdown**
 
 - Shuts down after the queue empties and everything is done, with a delay; new activity cancels it automatically.
+- Failed tasks do not block shutdown: auto shutdown outranks them. Undismissed failures keep showing the banner after the next boot until you press "Dismiss" or "Delete".
 - Optional time window. The shutdown command forces, so programs that block shutdown cannot stall it.
 
 **Other**
 
 - Chinese / English interface, applied on save. Data coming from OpenClaw (task text, window names, log entries, channel names) stays in its original language.
 - Log page records every dispatch, completion and failure; CSV export with UTF-8 BOM opens directly in WPS.
-- Any failure halts dispatch with a red banner; "Retry this" or "Resume".
+- Any failure halts dispatch with a red banner; "Retry this", "Resume", or "Dismiss" (kept in the failed list, no longer dispatched, not deleted).
 - Single portable exe, double-click to run, copy it anywhere; optional autostart and taskbar icon.
 - Version and build time shown at the bottom of the window, so it is obvious which build is running.
 
 ## 3. Requirements
 
 - OpenClaw gateway running on the same machine (port 18789 by default; read from `~/.openclaw/openclaw.json`).
-- Model service status is optional: Foreman can read a service status endpoint (for example Strata's `/status`); the address is a setting (default `http://127.0.0.1:8080`), so any local service layout works. If it cannot be reached, Foreman falls back to window state only.
+- Model service status is optional: the service status address is a setting (default `http://127.0.0.1:8080`). Foreman asks each server the way that server answers — `/status` (`{"busy":…, "queued":…}`, Strata-style routers and many proxies), `/slots` (llama.cpp's llama-server), `/api/ps` (ollama), `/running` (llama-swap, then one hop to the server it manages). If none of them answer, it falls back to window state only (the service chip shows "unknown" and the tooltip says why).
 - A chat channel is optional.
 - Automatic shutdown uses the Windows command (`shutdown /s /t 0 /f`); other systems are not adapted, leave it off there.
 
@@ -104,7 +105,7 @@ catherder.exe status           settings, gates, pending confirmations
 catherder.exe log              recent events
 catherder.exe export           export CSV
 catherder.exe tick             run one check now
-catherder.exe add / move / cancel / errors / retry / confirm / scan / set / get / notify / shot
+catherder.exe add / move / cancel / dismiss / errors / retry / confirm / scan / set / get / notify / shot
 ```
 
 ## 5. Build from source

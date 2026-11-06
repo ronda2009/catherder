@@ -53,14 +53,20 @@ const DICT = {
 
   /* ---- 横幅 ---- */
   '⛔ 已停止派发：': '⛔ Dispatch halted: ',
-  '。修复后点「重试」，或点「继续派发」。': '. Fix it, then press "Retry" or "Resume".',
+  '。修复后点「重试」或「继续派发」，不再需要点「取消」。': '. Fix it and press "Retry" or "Resume" — or "Dismiss" if you no longer need them.',
   '继续派发': 'Resume',
   '🌙 自动关机：': '🌙 Auto shutdown: ',
   '取消关机': 'Cancel shutdown',
 
   /* ---- 异常区 ---- */
   '没有标异常的任务。': 'No failed tasks.',
+  '派发失败、模型服务不通等。修复后点「重试」；不再需要可点「取消」（留下、不再派发）或「删除」。异常任务不拦自动关机。':
+    'Dispatch failures, model service unreachable, etc. Fix it and press "Retry"; if you no longer need it press "Dismiss" (kept, no longer dispatched) or "Delete". Failed tasks do not block auto shutdown.',
   '派发失败': 'Dispatch failed',
+  '已取消（不再派发）': 'Dismissed (not dispatched)',
+  '已取消：这批异常不再派发，也不删除，留在异常任务里。': 'Dismissed: this batch is kept in the failed list — not dispatched, not deleted.',
+  '已取消：不再派发，也不删除。': 'Dismissed — kept, not dispatched, not deleted.',
+  '取消': 'Dismiss',
   ' · 重试 ': ' · retried ',
   ' 次': ' times',
   '原因：': 'Reason: ',
@@ -174,6 +180,26 @@ const DICT = {
   '显卡利用率连续两轮超过阈值就先不派（单轮偶发尖峰不算）。服务没报忙、但显卡还在动的时候能挡住误判。':
     'Pause new dispatches while GPU utilization stays above the threshold for two rounds in a row (a one-round spike does not count). Catches the case where the model service reports idle while the GPU is still working.',
   '显卡利用率阈值': 'GPU utilization threshold',
+  // 服务闸门：各家接口不一样，这里说清它自己会试哪几种问法，以及地址能改。
+  '自动按服务种类选问法：/status、/slots（llama.cpp）、/api/ps（ollama）、/running（llama-swap）；都问不到时只看窗口状态。':
+    'It asks each server the way that server answers: /status, /slots (llama.cpp), /api/ps (ollama), /running (llama-swap). If none of them answer, window state is used alone.',
+  '服务状态地址': 'Service status address',
+  '留空＝http://127.0.0.1:8080；例 http://127.0.0.1:8090、http://127.0.0.1:11434':
+    'Empty = http://127.0.0.1:8080; e.g. http://127.0.0.1:8090, http://127.0.0.1:11434',
+  '认成：': 'Recognized as: ',
+  '；依据：': '; basis: ',
+  '依据：': 'Basis: ',
+  '探不到': 'not detected',
+  '状态接口': 'status endpoint',
+  '状态地址上 /status、/slots、/api/ps、/running 都没答（探不到就只看窗口状态）':
+    'the status address answered none of /status, /slots, /api/ps or /running (without it, window state is used alone)',
+  // 服务「依据」里不带数字/名字的几句（带数字与模型名的进 RULES，见下面）。
+  '服务自报正在生成': 'the service reports it is generating',
+  '服务自报空闲': 'the service reports it is idle',
+  '槽全空': 'all slots are free',
+  '没有模型驻留': 'no model is loaded in memory',
+  '没挂模型': 'no model is loaded',
+  '挂着的模型空闲': 'the loaded model is idle',
   '%（连续两轮超过这个数才算忙）': '% (counts as busy only after two consecutive rounds above this)',
   '完成结果通知通道': 'Channel for result notifications',
   '留空＝不发送通知，仅记录在日志中。': 'Empty = no notification, results go to the log only.',
@@ -229,9 +255,9 @@ const DICT = {
   '提交 ': 'Submitted ',
   '已重新排队。': 're-queued.',
   '已删除。': 'deleted.',
-  '已前移。': 'moved up.',
-  '已后移。': 'moved down.',
-  '已加入队列 ': 'Queued ',
+  '已上移。': 'moved up.',
+  '已下移。': 'moved down.',
+  '已加入队列 ': 'Added to queue ',
   '，目标窗口空闲时会自动派发。': '; it dispatches when the target window is idle.',
   '已取回输入框，修改后请重新加入队列。': 'Back in the editor — edit it and queue it again.',
   /* 队列里就地编辑 */
@@ -273,8 +299,6 @@ const DICT = {
   '正在发…': 'Sending…',
   '色值 —': 'color —',
   '）': ')',
-  '派发失败、模型服务不通等。修复后点「重试」，不再需要可点「删除」。':
-    'Dispatch failed, model service unreachable, etc. Fix it and press "Retry", or "Delete" if you do not need it anymore.',
   '选通道自动列出该通道的会话；名单不对时点「刷新地址」重查。':
     'Picking a channel lists its conversations; if the list looks wrong, press "Refresh list".',
   '放大查看': 'Zoom',
@@ -491,6 +515,14 @@ const RULES = [
   [/同时已派满 (\d+) 个窗口/, (m, n) => `all ${n} window slot(s) already in use`],
   [/显卡正忙（利用率 (\d+)%，连续 (\d+) 轮超过 (\d+)%）/, (m, p, n, t) => `the GPU is busy (${p}% utilization, ${n} consecutive rounds above ${t}%)`],
   [/模型服务还在忙/, () => 'the model service is still busy'],
+  // 服务「依据」短句（顶栏悬停）：数字与模型名保持原文。
+  [/服务在排队 (\d+) 条/, (m, n) => `the service has ${n} request(s) queued`],
+  [/(\d+)\/(\d+) 个槽正在生成/, (m, a, b) => `${a}/${b} slot(s) are generating`],
+  [/(\d+) 个模型驻留内存（(.+?) 等）/, (m, n, w) => `${n} model(s) loaded in memory (${keep(w)} and others)`],
+  [/模型 (\S+) 驻留内存/, (m, w) => `model ${keep(w)} is loaded in memory`],
+  [/模型 (\S+) 还没挂稳（状态 (\S+)）/, (m, w, s) => `model ${keep(w)} is not ready yet (state ${s})`],
+  [/挂着 (\d+) 个模型（(.+?) 等），问不到它们忙不忙/, (m, n, w) => `${n} model(s) are loaded (${keep(w)} and others), and the servers behind them do not answer whether they are busy`],
+  [/挂着模型 (.+?)，问不到它忙不忙/, (m, w) => `model ${keep(w)} is loaded, and the server behind it does not answer whether it is busy`],
   [/窗口 (.*?) 用的模型服务正忙，这条先排队/, (m, w) => `the model service used by window ${keep(w)} is busy, this one stays queued`],
   [/窗口 (.*?) 正忙（还有 (\d+) 条没处理完）/, (m, w, n) => `window ${keep(w)} is busy (${n} task(s) still unfinished)`],
   [/窗口 (.*?) 刚收到消息，本轮先避开/, (m, w) => `window ${keep(w)} just received input, skipped this round`],

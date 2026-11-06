@@ -41,6 +41,17 @@ function ago(ms) {
 
 function feed(msg) { $('feed').textContent = tr(msg); }
 
+/* 打字时别把界面刷掉（T-157）：后台每 60 秒推一次刷新，原来会把卡片整片重建，
+   正在写的输入框跟着被重建 → 光标没了，得用鼠标点一下才能接着写。
+   后台刷新时只要焦点在输入框/下拉里：数据照读，界面这块不动，写完再刷。
+   用户自己点的操作（加入队列/上移/下移/删除/编辑/保存设置）照旧立刻重画。 */
+function typingNow() {
+  const a = document.activeElement;
+  if (!a || a === document.body) return false;
+  const tag = (a.tagName || '').toLowerCase();
+  return tag === 'textarea' || tag === 'input' || tag === 'select';
+}
+
 function chip(el, text, cls) {
   if (!el) return;
   el.textContent = tr(text);
@@ -97,6 +108,10 @@ async function refreshOverview() {
     // 排队 / 执行 / 完成 / 同时 N 窗 / 每 N 秒 / 距下次 N 秒。行话不出现。
     chip($('chip-run'), o.running ? tr('派工中 每 ') + o.interval + tr(' 秒') : tr('已暂停'), o.running ? 'ok' : 'warn');
     chip($('chip-service'), serviceShort(o.service), o.service === '模型服务空闲' ? 'ok' : (o.service === '模型服务繁忙' ? 'warn' : ''));
+    // 悬停说清「认成了哪种服务、凭什么这么说」——光一个「服务空闲」看不出它到底认了什么。
+    // serviceWhy 是 Go 传来的句子，要过 tr() 才会变英文（不包就会被当数据原样留下）。
+    if (o.serviceKind) $('chip-service').title = tr('认成：') + o.serviceKind + tr('；依据：') + tr(o.serviceWhy);
+    else $('chip-service').title = tr('依据：') + (tr(o.serviceWhy) || tr('探不到'));
     nextTickSec = o.running ? o.nextSec : -1;
     renderNextChip(o.running, o.nextSec, o.interval);
     chip($('chip-par'), tr('同时 ') + o.parallel + tr(' 窗'), '');
@@ -119,10 +134,18 @@ function renderBanner(o) {
   b.innerHTML = '';
   if (o.halt) {
     b.className = 'banner bad';
-    b.innerHTML = `<span class="grow">${tr('⛔ 已停止派发：')}${esc(tr(o.halt))}${tr('。修复后点「重试」，或点「继续派发」。')}</span>
-      <button id="bn-resume">${tr('继续派发')}</button>`;
+    b.innerHTML = `<span class="grow">${tr('⛔ 已停止派发：')}${esc(tr(o.halt))}${tr('。修复后点「重试」或「继续派发」，不再需要点「取消」。')}</span>
+      <button id="bn-resume">${tr('继续派发')}</button><button id="bn-dismiss" class="danger">${tr('取消')}</button>`;
     $('bn-resume').onclick = async () => {
       try { await api().ClearHalt(); await refreshOverview(); } catch (e) { feed(tr('继续失败：') + e.message); }
+    };
+    // 「取消」＝这批异常全部不再派发、也不删除，摆到异常区里；横幅跟着一起复位。
+    $('bn-dismiss').onclick = async () => {
+      try {
+        await api().DismissAllErrors();
+        feed(tr('已取消：这批异常不再派发，也不删除，留在异常任务里。'));
+      } catch (e) { feed(tr('取消失败：') + e.message); }
+      await Promise.all([refreshOverview(), refreshQueue()]);
     };
     return;
   }
@@ -141,7 +164,7 @@ function renderBanner(o) {
   }
 }
 
-/* 异常任务区：带原因 + 「重试 / 删除」。 */
+/* 异常任务区：带原因 + 「重试 / 取消 / 删除」。已取消的只留「重试 / 删除」。 */
 async function refreshErrors() {
   try {
     const es = await api().Errors() || [];
@@ -155,10 +178,11 @@ async function refreshErrors() {
       const div = document.createElement('div');
       div.className = 'task error';
       div.innerHTML = `<div class="head"><div class="who">→ ${esc(t.targetLabel || t.targetKey)} · ${tr('提交 ')}${fmtTime(t.createdAt)}
-        <span class="tag bad">${tr('派发失败')}</span>${t.tries ? tr(' · 重试 ') + t.tries + tr(' 次') : ''}</div></div>
+        <span class="tag ${t.state === 'dismissed' ? '' : 'bad'}">${t.state === 'dismissed' ? tr('已取消（不再派发）') : tr('派发失败')}</span>${t.tries ? tr(' · 重试 ') + t.tries + tr(' 次') : ''}</div></div>
         <div class="body">${esc(t.body)}</div>
         <div class="why">${tr('原因：')}${esc(t.note || tr('未记录'))}</div>
         <div class="acts"><button data-act="retry" data-id="${t.id}">${tr('重试')}</button>
+          ${t.state === 'dismissed' ? '' : `<button data-act="dismiss" data-id="${t.id}">${tr('取消')}</button>`}
           <button data-act="cancel" data-id="${t.id}" class="danger">${tr('删除')}</button>
           <span class="spacer"></span><span class="stamp">${fmtTime(t.doneAt)}</span></div>`;
       box.appendChild(div);
@@ -174,6 +198,9 @@ $('card-errors').addEventListener('click', async (ev) => {
     if (b.dataset.act === 'retry') {
       await api().RetryTask(id);
       feed(`T-${String(id).padStart(3, '0')} ` + tr('已重新排队。'));
+    } else if (b.dataset.act === 'dismiss') {
+      await api().DismissTask(id);
+      feed(`T-${String(id).padStart(3, '0')} ` + tr('已取消：不再派发，也不删除。'));
     } else {
       await api().CancelTask(id);
       feed(`T-${String(id).padStart(3, '0')} ` + tr('已删除。'));
@@ -418,7 +445,7 @@ function stateText(t) {
     default: return t.state;
   }
 }
-async function refreshQueue() {
+async function refreshQueue(force = true) {
   try {
     // 正在就地编辑：先记下输入到一半的内容与选的窗口，重建卡片后接回去（不然定时刷新会把字刷掉）。
     const curEd = editId ? document.querySelector('#queue .task.editing .ed-body') : null;
@@ -429,6 +456,14 @@ async function refreshQueue() {
     } : null;
     const q = await api().Queue() || [];
     const box = $('queue');
+    // 后台刷新时用户正在写字：卡片不重建，只把条数与「已等」计时接着走（重建会把光标弄没）。
+    if (!force && typingNow()) {
+      $('queue-hint').textContent = q.length
+        ? tr('共 ') + q.length + tr(' 条 · 新的在上 · 最下面那条先派')
+        : tr('队列为空');
+      tickQueueAges();
+      return;
+    }
     box.innerHTML = '';
     // 显示**倒序**。
     // 派发顺序没变（还是按 prio 从队首往下扫），只是卡片反过来画
@@ -451,7 +486,7 @@ async function refreshQueue() {
   } catch (e) { feed(tr('读队列失败：') + e.message); }
 }
 
-// 界面自检（--tab debug）：确认按钮真的渲染出来了，并真点一次「上移」「删除」
+// 界面自检（--tab debug）：确认按钮真的渲染出来了，并真点一次「下移」「删除」
 // 验证「前端点击 → 调 Go → 刷新」这条链通不通。
 let dbgRan = false;
 async function dbgCheckQueue(box, q) {
@@ -466,16 +501,25 @@ async function dbgCheckQueue(box, q) {
   const order = () => q.map((t) => t.id).join(',');
   const shown = () => [...box.querySelectorAll('.task .tid')].map((x) => x.textContent).join(',');
   await api().Debug('点之前顺序: ' + order() + ' · 屏幕上(新的在上): ' + shown());
-  const last = q[q.length - 1];
-  const up = box.querySelector(`button[data-act="up"][data-id="${last.id}"]`);
+  // 拿屏幕中间那条做往返试验（派发顺序倒数第二条）。
+  // 上移＝卡片往上走一格＝离队首更远＝派发顺序往后一位；下移＝卡片往下走一格＝提前派。
+  const mid = q[q.length - 2];
+  const up = box.querySelector(`button[data-act="up"][data-id="${mid.id}"]`);
   if (up) up.click();
   await new Promise((r) => setTimeout(r, 1200));
-  const after = await api().Queue() || [];
-  await api().Debug('点击「上移」后: ' + after.map((t) => t.id).join(','));
-  const lastAfter = after[after.length - 1];
-  const cancel = lastAfter
-    ? document.querySelector(`#queue button[data-act="cancel"][data-id="${lastAfter.id}"]`)
-    : null;
+  const afterUp = await api().Queue() || [];
+  const upPos = afterUp.findIndex((t) => t.id === mid.id);
+  await api().Debug('点「上移」后: ' + afterUp.map((t) => t.id).join(',')
+    + ' · ' + mid.id + ' 在派发顺序第' + (upPos + 1) + '位（原第' + (q.length - 1)
+    + '位，要变第' + q.length + '位＝屏幕最上面）');
+  const down = document.querySelector(`#queue button[data-act="down"][data-id="${mid.id}"]`);
+  if (down) down.click();
+  await new Promise((r) => setTimeout(r, 1200));
+  const afterDown = await api().Queue() || [];
+  const downPos = afterDown.findIndex((t) => t.id === mid.id);
+  await api().Debug('再点「下移」后: ' + afterDown.map((t) => t.id).join(',')
+    + ' · ' + mid.id + ' 在派发顺序第' + (downPos + 1) + '位（要回到第' + (q.length - 1) + '位＝屏幕中间）');
+  const cancel = document.querySelector(`#queue button[data-act="cancel"][data-id="${mid.id}"]`);
   if (cancel) cancel.click();
   await new Promise((r) => setTimeout(r, 1200));
   const left = await api().Queue() || [];
@@ -531,9 +575,11 @@ async function dbgCheckEdit() {
   } catch (e) { await api().Debug('[编辑自检] 跑不动: ' + e.message); }
 }
 
-async function refreshDispatched() {
+async function refreshDispatched(force = true) {
   try {
     const d = await api().Dispatched() || [];
+    // 后台刷新时用户正在写字：数据读了，列表不重建（重建会把输入框里的字与光标弄没）。
+    if (!force && typingNow()) return;
     // 一份数据分两堆：**还在跑的**留「已派发待回复」，**判完工的**进「已完成」。
     // 收了回执、还是只凭窗口空闲判完（done_unacked），**都算完成**，只是标签写明区别。
     // 三个区都**新的在上**：后端给的是旧→新，这里倒过来画。
@@ -708,15 +754,18 @@ $('queue').addEventListener('click', async (ev) => {
       await api().CancelTask(id);
       feed(`T-${String(id).padStart(3, '0')} ` + tr('已删除。'));
     } else if (b.dataset.act === 'up') {
-      if (idx <= 0) return;
-      // 「上移」＝插到「紧前面那条」之前（传上上条会跳两格）。q 是后端给的派发顺序，与屏幕画法无关。
-      await api().MoveTask(id, q[idx - 1].id);
-      feed(`T-${String(id).padStart(3, '0')} ` + tr('已前移。'));
-    } else if (b.dataset.act === 'down') {
+      // 「上移」＝卡片往上挪一格。屏幕上新的在上、最下面那条先派，
+      // 所以往上＝离队首更远＝往后派一位。已在最上面（派发顺序最后一条）就没得挪。
       if (idx < 0 || idx >= q.length - 1) return;
-      // 「下移」＝插到「后面第二条」之前；后面只剩一条时就是挪到队尾（传 0 会被当队首）。
+      // 插到「后面第二条」之前；上面只剩一条时就是挪到队尾（传 0 会被当队首）。
       await api().MoveTask(id, idx + 2 < q.length ? q[idx + 2].id : -1);
-      feed(`T-${String(id).padStart(3, '0')} ` + tr('已后移。'));
+      feed(`T-${String(id).padStart(3, '0')} ` + tr('已上移。'));
+    } else if (b.dataset.act === 'down') {
+      // 「下移」＝卡片往下挪一格＝往队首靠一位＝提前派。已在最下面（派发顺序第一条）就没得挪。
+      if (idx <= 0) return;
+      // 插到「紧前面那条」之前（传上上条会跳两格）。q 是后端给的派发顺序，与屏幕画法无关。
+      await api().MoveTask(id, q[idx - 1].id);
+      feed(`T-${String(id).padStart(3, '0')} ` + tr('已下移。'));
     }
     await Promise.all([refreshQueue(), refreshOverview()]);
   } catch (e) { feed(tr('操作失败：') + e.message); }
@@ -724,10 +773,12 @@ $('queue').addEventListener('click', async (ev) => {
 
 /* ---------- 窗口页 ---------- */
 
-async function refreshWindows() {
+async function refreshWindows(force = true) {
   try {
     windowsCache = await api().Windows() || [];
   } catch (e) { feed(tr('读窗口失败：') + e.message); return; }
+  // 后台刷新时用户正在写字：窗口名单与勾选列表都不重建（下拉正在选/输入框正在写）。
+  if (!force && typingNow()) return;
   renderTargetSelect();
   const box = $('windows');
   box.innerHTML = '';
@@ -794,6 +845,7 @@ async function loadSettings() {
     $('s-gate').checked = !!s.gateService;
     $('s-gate-gpu').checked = !!s.gateGpu;
     $('s-gpu-pct').value = s.gpuPercent || 30;
+    $('s-status').value = s.serviceStatusUrl || '';
     $('s-auto').checked = !!s.autoInclude;
     $('s-tray').checked = !!s.trayOnClose;
     $('s-shutdown').checked = !!s.autoShutdown;
@@ -920,6 +972,7 @@ $('btn-save').addEventListener('click', async () => {
       gateService: $('s-gate').checked,
       gateGpu: $('s-gate-gpu').checked,
       gpuPercent: Number($('s-gpu-pct').value) || 30,
+      serviceStatusUrl: $('s-status').value.trim(),
       autoInclude: $('s-auto').checked,
       trayOnClose: $('s-tray').checked,
       autoShutdown: $('s-shutdown').checked,
@@ -1035,7 +1088,8 @@ function bindEvents() {
     if ($('page-log').classList.contains('active')) refreshLog();
   });
   window.runtime.EventsOn('refresh', () => {
-    Promise.all([refreshOverview(), refreshQueue(), refreshDispatched(), refreshWindows()]);
+    // 后台定时刷新：正在打字就不重画列表（T-157）。
+    Promise.all([refreshOverview(), refreshQueue(false), refreshDispatched(false), refreshWindows(false)]);
   });
   // 托盘菜单直接开某一页（Go 那边叫 OpenTab 发这个事件）。
   window.runtime.EventsOn('tab', (name) => { openTab(name); });
@@ -1105,6 +1159,37 @@ async function dbgReportTop() {
   } catch (e) { /* 自检失败不影响正常使用 */ }
 }
 
+/* 打字不被刷新打断自检（T-157）：焦点在输入框时走一次「后台刷新」，
+   输入框必须还在、字必须还在；卡片上贴的标记还在＝卡片没被重建。
+   只在 --tab debug 跑，不掺进正常流程。 */
+async function dbgCheckTyping() {
+  try {
+    // 先让其它自检（点按钮会强制重画）跑完，不然它们的重画会混进这次判断。
+    dbgRan = true; dbgEditRan = true;
+    await new Promise((r) => setTimeout(r, 6000));
+    const b = $('body');
+    if (!b) { await api().Debug('[打字自检] 没找到新建任务输入框'); return; }
+    b.focus();
+    const text = '打字自检：这段字在后台刷新后必须还在';
+    b.value = text;
+    const focusedBefore = document.activeElement === b;
+    const card = $('queue').firstElementChild;
+    if (card) card.__dbgMark = 'keep';
+    await Promise.all([refreshQueue(false), refreshDispatched(false), refreshWindows(false)]);
+    const card2 = $('queue').firstElementChild;
+    await api().Debug('[打字自检] 后台刷新前 焦点在输入框=' + focusedBefore
+      + ' → 刷新后 焦点还在=' + (document.activeElement === b)
+      + ' 内容还在=' + (b.value === text)
+      + ' 卡片没重建=' + (card2 && card2.__dbgMark === 'keep' ? '是' : (card ? '否' : '-（队列空）')));
+    // 对照：用户自己点的操作（force=true）必须照旧重画，不然改完顺序看不见。
+    await refreshQueue();
+    const card3 = $('queue').firstElementChild;
+    await api().Debug('[打字自检] 对照：手动重画（force）卡片已重建=' + (card3 && card3.__dbgMark === 'keep' ? '否（不对）' : '是')
+      + ' 输入框内容还在=' + (b.value === text));
+    b.value = '';
+  } catch (e) { await api().Debug('[打字自检] 跑不动: ' + e.message); }
+}
+
 let booted = false;
 async function boot() {
   bindEvents();
@@ -1132,6 +1217,7 @@ async function boot() {
     booted = true;
     if (dbgTab === 'debug') {
       dbgReportTop();
+      dbgCheckTyping();
       // 截图整条链靠鼠标拖框，脚本代不了；让页面自己模拟事件跑一遗。
       // 必须在这里调：shot.js 绑定比 boot() 早，那时 dbgTab 还没拿到值。
       if (window.__shot) setTimeout(() => window.__shot.selftest(), 1200);

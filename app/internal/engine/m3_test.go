@@ -176,14 +176,15 @@ func TestShutdownReady(t *testing.T) {
 	if err := e.st.MarkError(id, "炸了"); err != nil {
 		t.Fatalf("标异常失败: %v", err)
 	}
-	if ok, _ := e.shutdownReady(inc, idle); ok {
-		t.Error("有异常没处理，不该关机")
+	// 异常任务不拦关机（老板 2026-11-06：自动关机权限大于异常提醒）。
+	if ok, _ := e.shutdownReady(inc, idle); !ok {
+		t.Error("只剩异常任务也该满足关机条件（异常不拦关机）")
 	}
-	if err := e.st.Cancel(id); err != nil {
-		t.Fatalf("撤销失败：%v", err)
+	if err := e.st.Dismiss(id); err != nil {
+		t.Fatalf("取消失败：%v", err)
 	}
 	if ok, _ := e.shutdownReady(inc, idle); !ok {
-		t.Error("撤销异常任务后应重新满足关机条件")
+		t.Error("取消异常任务后应仍满足关机条件")
 	}
 }
 

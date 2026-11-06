@@ -295,7 +295,8 @@ func (a *App) Queue() ([]store.Task, error) { return a.st.Queue() }
 // 引擎算并发不看这里，看 store.Dispatched()（只数真在跑的），两者不混。
 func (a *App) Dispatched() ([]store.Task, error) { return a.st.DispatchedSince(a.bootMs) }
 
-// Errors 供界面「异常任务」区使用：含原因，配「重试 / 删除」按钮。
+// Errors 供界面「异常任务」区使用：含原因，配「重试 / 取消 / 删除」按钮。
+// 已取消摆着的也列在这里（排后面），标签会写明它已取消。
 func (a *App) Errors() ([]store.Task, error) { return a.st.RecentErrors(50) }
 
 func (a *App) RecentLog(n int) ([]string, error) { return a.st.RecentEvents(n) }
@@ -306,18 +307,22 @@ func (a *App) ListConversations(channel string) ([]engine.ConversationInfo, erro
 }
 
 type Overview struct {
-	Running   bool   `json:"running"`
-	Interval  int    `json:"interval"`
-	Paused    string `json:"paused"`
-	Halt      string `json:"halt"`
-	Notify    string `json:"notify"`
-	Parallel  int    `json:"parallel"`
-	Service   string `json:"service"`
-	QueueLen  int    `json:"queueLen"`
-	DispatchN int    `json:"dispatchN"`
-	DoneN     int    `json:"doneN"` // 顶栏「完成 N」（状态栏要有已完成的计数）
-	ErrorN    int    `json:"errorN"`
-	Shutdown  string `json:"shutdown"`
+	Running  bool   `json:"running"`
+	Interval int    `json:"interval"`
+	Paused   string `json:"paused"`
+	Halt     string `json:"halt"`
+	Notify   string `json:"notify"`
+	Parallel int    `json:"parallel"`
+	Service  string `json:"service"`
+	// ServiceKind / ServiceWhy：认成了哪种服务（llama.cpp / ollama / llama-swap / 状态接口）、凭什么说它忙。
+	// 顶栏那一栏只放结论，这两个给悬停与日志用——不然「服务空闲」四个字看不出它到底认了什么。
+	ServiceKind string `json:"serviceKind"`
+	ServiceWhy  string `json:"serviceWhy"`
+	QueueLen    int    `json:"queueLen"`
+	DispatchN   int    `json:"dispatchN"`
+	DoneN       int    `json:"doneN"` // 顶栏「完成 N」（状态栏要有已完成的计数）
+	ErrorN      int    `json:"errorN"`
+	Shutdown    string `json:"shutdown"`
 	// NextSec：距下一次检查还剩几秒。
 	// 只能给全局这一个节拍：引擎是每隔 interval 秒跑一轮，不是每条任务各自倒计时。
 	NextSec int `json:"nextSec"`
@@ -346,14 +351,16 @@ func (a *App) Overview() Overview {
 		o.Notify = ch
 	}
 	o.Parallel = a.settingInt("max_parallel", 1)
-	if busy, known := a.eng.ServiceBusyForStatus(); known {
-		if busy {
+	if d := a.eng.ServiceBusyDetail(); d.Known {
+		if d.Busy {
 			o.Service = "模型服务繁忙"
 		} else {
 			o.Service = "模型服务空闲"
 		}
+		o.ServiceKind, o.ServiceWhy = d.Kind, d.Why
 	} else {
 		o.Service = "这台机器探不到服务状态，只看窗口"
+		o.ServiceWhy = "状态地址上 /status、/slots、/api/ps、/running 都没答（探不到就只看窗口状态）"
 	}
 	if q, err := a.st.Queue(); err == nil {
 		o.QueueLen = len(q)
@@ -428,6 +435,12 @@ func (a *App) CancelEdit(id int) error { return a.st.CancelEditing(id) }
 // RetryTask 将标记为异常的任务重新排队（修复后点击「重试」）。
 func (a *App) RetryTask(id int) error { return a.st.RetryTask(id) }
 
+// DismissTask 把一条异常任务「取消」：不再派发、也不删除，就摆着（随时还能重试或删除）。
+func (a *App) DismissTask(id int) error { return a.st.Dismiss(id) }
+
+// DismissAllErrors 横幅上的「取消」：这批异常全部取消摆着，同时复位「已停止派发」。
+func (a *App) DismissAllErrors() error { return a.st.DismissAllErrors() }
+
 // ClearHalt 清除「全部异常已停止派发」标记，恢复派发。
 func (a *App) ClearHalt() error { return a.st.ClearHalt() }
 
@@ -446,23 +459,26 @@ func (a *App) SetIncluded(key string, on bool) error { return a.st.SetIncluded(k
 
 // Settings 给设置页用：一次把常用项都取出来。
 type Settings struct {
-	NotifyChannel string   `json:"notifyChannel"`
-	NotifyTarget  string   `json:"notifyTarget"`
-	MaxParallel   int      `json:"maxParallel"`
-	RecheckSec    int      `json:"recheckSec"`
-	RetryDelaySec int      `json:"retryDelaySec"`
-	AppendTail    bool     `json:"appendTail"`
-	GateService   bool     `json:"gateService"`
-	GateGpu       bool     `json:"gateGpu"`
-	GpuPercent    int      `json:"gpuPercent"`
-	AutoInclude   bool     `json:"autoInclude"`
-	IntervalSec   int      `json:"intervalSec"`
-	TrayOnClose   bool     `json:"trayOnClose"`
-	AutoShutdown  bool     `json:"autoShutdown"`
-	ShutdownHours string   `json:"shutdownHours"`
-	MuteMode      string   `json:"muteMode"`
-	Lang          string   `json:"lang"`
-	Channels      []string `json:"channels"`
+	NotifyChannel string `json:"notifyChannel"`
+	NotifyTarget  string `json:"notifyTarget"`
+	MaxParallel   int    `json:"maxParallel"`
+	RecheckSec    int    `json:"recheckSec"`
+	RetryDelaySec int    `json:"retryDelaySec"`
+	AppendTail    bool   `json:"appendTail"`
+	GateService   bool   `json:"gateService"`
+	GateGpu       bool   `json:"gateGpu"`
+	GpuPercent    int    `json:"gpuPercent"`
+	// ServiceStatusUrl：服务忙闲去哪个地址问（留空＝http://127.0.0.1:8080）。
+	// 以前只能走命令行 set，别人机器上换了端口就只能猜；现在设置页里能自己改。
+	ServiceStatusUrl string   `json:"serviceStatusUrl"`
+	AutoInclude      bool     `json:"autoInclude"`
+	IntervalSec      int      `json:"intervalSec"`
+	TrayOnClose      bool     `json:"trayOnClose"`
+	AutoShutdown     bool     `json:"autoShutdown"`
+	ShutdownHours    string   `json:"shutdownHours"`
+	MuteMode         string   `json:"muteMode"`
+	Lang             string   `json:"lang"`
+	Channels         []string `json:"channels"`
 }
 
 func (a *App) GetSettings() Settings {
@@ -479,6 +495,7 @@ func (a *App) GetSettings() Settings {
 	s.GateService = a.flagOn("gate_service", true)
 	s.GateGpu = a.flagOn("gate_gpu", true)
 	s.GpuPercent = a.settingInt("gpu_busy_percent", 30)
+	s.ServiceStatusUrl, _ = a.st.GetSetting("service_status_url")
 	s.AutoInclude = a.flagOn("auto_include_new", false)
 	s.TrayOnClose = a.flagOn("tray_on_close", true)
 	s.AutoShutdown = a.flagOn("auto_shutdown", false)
@@ -505,6 +522,7 @@ func (a *App) SaveSettings(s Settings) error {
 	set("gate_service", boolStr(s.GateService))
 	set("gate_gpu", boolStr(s.GateGpu))
 	set("gpu_busy_percent", fmt.Sprint(clamp(s.GpuPercent, 5, 95)))
+	set("service_status_url", strings.TrimSpace(s.ServiceStatusUrl))
 	set("auto_include_new", boolStr(s.AutoInclude))
 	set("tray_on_close", boolStr(s.TrayOnClose))
 	iv := clamp(s.IntervalSec, 15, 600)
